@@ -21,7 +21,6 @@ public class Main {
 	
 	private static void displayStartMenue(){
 		System.out.println("Which Bot should be started?");
-		System.out.println("(0) Base Bot");
 		System.out.println("(1) Joke Bot");
 	}
 	
@@ -29,8 +28,8 @@ public class Main {
 		IBot bot = null;
 		
 		switch  (input) {
-		case 0:  bot = new BaseBot(token);
-		case 1:  bot = new JokeBot(token);
+		case 0:  break;
+		case 1:  bot = new JokeBot(token); break;
 		}
 		
 		return bot;

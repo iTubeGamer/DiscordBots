@@ -8,9 +8,14 @@ import sx.blah.discord.api.events.IListener;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.util.DiscordException;
+import sx.blah.discord.util.Image;
+import sx.blah.discord.util.RateLimitException;
 
 
-public class BaseBot implements IListener<ReadyEvent>, IBot{
+public abstract class BaseBot implements IListener<ReadyEvent>, IBot{
+	protected String bot_name = "BaseBot";
+	protected String profile_image_url = "http://i.imgur.com/LxbiFqo.jpg";
+	protected String profile_image_imageType = "jpeg";
 	
 	protected IDiscordClient client; // The instance of the discord client.
 
@@ -18,6 +23,13 @@ public class BaseBot implements IListener<ReadyEvent>, IBot{
 		this.client = createClient(token);
 		EventDispatcher dispatcher = client.getDispatcher();
 		dispatcher.registerListener(this); //BaseBot implements IListener
+	}
+	
+	public BaseBot(String token, String bot_name, String profile_image_url, String profile_image_imageType) {
+		this(token);
+		this.bot_name = bot_name;
+		this.profile_image_imageType = profile_image_imageType;
+		this.profile_image_url = profile_image_url;
 	}
 	
 	public IDiscordClient getClient(){
@@ -37,10 +49,15 @@ public class BaseBot implements IListener<ReadyEvent>, IBot{
 	
 	@Override
 	public void handle(ReadyEvent event) {
-		IDiscordClient client = event.getClient(); // Gets the client from the event object
-		IUser ourUser = client.getOurUser();// Gets the user represented by the client
-		String name = ourUser.getName();// Gets the name of our user
-		System.out.println("Logged in as " + name);
+		
+		try {
+			client.changeUsername(this.bot_name);
+			client.changeAvatar(Image.forUrl(profile_image_imageType, profile_image_url));
+		} catch (DiscordException | RateLimitException e) {
+			e.printStackTrace();
+		}	
+		
+		System.out.println("Logged in as " + bot_name);
 	}
 
 }
