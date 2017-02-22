@@ -29,12 +29,9 @@ public class JokeBot extends BaseBot{
 	
 	private void tellHitlerjoke(IChannel channel){
 		User user = (User) client.getOurUser();
-		IGuild guild = channel.getGuild();
 		try {
-			if (!user.getNicknameForGuild(guild).equals("Hitler")){
-				user.addNick(guild.getID(), "Hitler");
-			}
-			new MessageBuilder(this.client).withChannel(channel).withContent("Wie heißt Hitlers Lieblingschokolade? Nazipan.").build();
+			channel.getGuild().setUserNickname(user, "Hitler");
+			new MessageBuilder(this.client).withChannel(channel).withContent("Immer diese scheiß Gasrechnung!").withTTS().build();
 		} catch (DiscordException | RateLimitException | MissingPermissionsException e) {
 			e.printStackTrace();
 		}	
@@ -44,18 +41,27 @@ public class JokeBot extends BaseBot{
 	@EventSubscriber
 	public void onReady(ReadyEvent event) {
 		super.onReady(event);
+		for (IGuild guild : client.getGuilds()){
+			if (!client.getOurUser().getNicknameForGuild(guild).orElse("").equals("JokeBot")){
+				try {
+					guild.setUserNickname(client.getOurUser(), "JokeBot");
+				} catch (MissingPermissionsException | DiscordException | RateLimitException e) {
+					e.printStackTrace();
+				}
+			}	
+		}
 		//TODO: Leute der Joke-Master ist online! Seit ihr ready für freshe Jokes?
 	}
 	
 	@EventSubscriber
-	public void onMessageReceivedEvent(MessageReceivedEvent event) {
+	public void onMessageReceivedEvent(MessageReceivedEvent event) throws MissingPermissionsException, DiscordException, RateLimitException {
 		String message = event.getMessage().getContent();
 		IChannel channel = event.getMessage().getChannel();
-		
-		if(message.equals("!joke hitler")){
+		if (message.startsWith("!change nick")){
+			User user = (User) client.getOurUser();
+			channel.getGuild().setUserNickname(user, message.substring(13));
+		} else if (message.equals("!joke hitler")){
 			tellHitlerjoke(channel);
-		} else if (message.equals("!change nick")){
-			//TODO Change name to what follows
 		}
 		
 	}
