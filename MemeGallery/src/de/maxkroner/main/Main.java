@@ -2,7 +2,6 @@ package de.maxkroner.main;
 
 import java.util.Scanner;
 
-import de.maxkroner.implementation.BaseBot;
 import de.maxkroner.implementation.JokeBot;
 import de.maxkroner.model.IBot;
 
@@ -11,12 +10,15 @@ public class Main {
 	public static void main(String[] args) {
 		Scanner scanner = new Scanner(System.in);
 		
-		if (args.length < 1) // Needs a bot token provided
+		if (args.length < 1){ // Needs a bot token provided
+			scanner.close();
 			throw new IllegalArgumentException("Please provide the Bot-Token as argument!");
+		}
 		
 		displayStartMenue();
 		int input = scanner.nextInt();
-		IBot bot = createBot(input, args[0]);
+		createBot(input, args[0]);
+		scanner.close();
 	}
 	
 	private static void displayStartMenue(){
@@ -28,7 +30,6 @@ public class Main {
 		IBot bot = null;
 		
 		switch  (input) {
-		case 0:  break;
 		case 1:  bot = new JokeBot(token); break;
 		}
 		
