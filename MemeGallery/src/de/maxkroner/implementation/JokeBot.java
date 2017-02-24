@@ -40,10 +40,10 @@ public class JokeBot extends BaseBot{
 				guild.setUserNickname(client.getOurUser(), bot_name);
 		}
 		//get random joke
-		Joke joke = JokeDatabase.getRandomJoke();
+		String joke = JokeDatabase.getRandomJoke("flach");
 		
 		MessageBuilder mb = new MessageBuilder(this.client).withChannel(channel).withTTS();
-		mb.withContent(joke.getQuestion() + " - " + joke.getAnswer());
+		mb.withContent(joke);
 		mb.build();
 	}
 	
@@ -60,7 +60,6 @@ public class JokeBot extends BaseBot{
 				}
 			}	
 		}
-		//TODO: Leute der Joke-Master ist online! Seit ihr ready für freshe Jokes?
 	}
 	
 	@EventSubscriber

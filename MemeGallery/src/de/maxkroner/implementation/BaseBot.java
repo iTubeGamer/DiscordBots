@@ -1,19 +1,18 @@
 package de.maxkroner.implementation;
 
-import de.maxkroner.model.IBot;
 import sx.blah.discord.api.ClientBuilder;
 import sx.blah.discord.api.IDiscordClient;
 import sx.blah.discord.api.events.EventDispatcher;
+import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.DisconnectedEvent;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.obj.Status;
 import sx.blah.discord.util.DiscordException;
 import sx.blah.discord.util.Image;
 import sx.blah.discord.util.RateLimitException;
-import sx.blah.discord.api.events.EventSubscriber;
 
 
-public abstract class BaseBot implements IBot{
+public abstract class BaseBot{
 	protected String bot_name = "BaseBot";
 	protected String bot_status = "This is the BaseBot description.";
 	protected String profile_image_url = "http://i.imgur.com/LxbiFqo.jpg";
@@ -53,14 +52,14 @@ public abstract class BaseBot implements IBot{
 	    clientBuilder.withToken(token); // Adds the login info to the builder
 	    try {
 	           return clientBuilder.login(); // Creates the client instance and logs the client in
-	    } catch (DiscordException e) { // This is thrown if there was a problem building the client
+	    } catch (DiscordException e) { 
 	        e.printStackTrace();
 	        return null;
 	    }
 	  }
 	
 	@EventSubscriber
-	public void onReady(ReadyEvent event) { // This is called when the ReadyEvent is dispatched
+	public void onReady(ReadyEvent event) {
 		try {
 			client.changeUsername(this.bot_name);
 			client.changeStatus(Status.game(bot_status));
@@ -76,5 +75,6 @@ public abstract class BaseBot implements IBot{
 	public void logout(DisconnectedEvent event) {
 		System.out.println("Logged out for reason " + event.getReason() + "!");
 	}
+	
 
 }
