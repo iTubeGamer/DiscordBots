@@ -1,4 +1,4 @@
-package de.maxkroner.main;
+package die.maxkroner.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -6,7 +6,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 public abstract class JokeDatabase {
@@ -30,7 +32,7 @@ public abstract class JokeDatabase {
 	public static void disconnect() {
 		try {
 			conn.close();
-			System.out.println("Database connected.");
+			System.out.println("Database disconnected.");
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -45,6 +47,24 @@ public abstract class JokeDatabase {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public static List<String> getJokeCategories() {
+		List<String> categories = new ArrayList<>();
+
+		Statement std;
+		try {
+			std = conn.createStatement();
+			String query = "SELECT DISTINCT category FROM joke";
+			ResultSet rs = std.executeQuery(query);
+			while (rs.next()) {
+				categories.add(rs.getString(1));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return categories;
 	}
 
 	public static void insertJoke(String joke, String category) {
@@ -68,26 +88,41 @@ public abstract class JokeDatabase {
 				insertJokes.setString(2, category);
 				insertJokes.executeUpdate();
 			}
+			
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 
 	}
 
-	public static void printAllJokes() {
+	private static void printAllJokes(Optional<String> category) {
+		String whereClause = "";
+		if (category.isPresent()) {
+			whereClause = " WHERE category = '" + category.get() + "'";
+		}
 
 		try {
 			Statement std = conn.createStatement();
-			String query = "SELECT * FROM joke";
+			String query = "SELECT * FROM joke" + whereClause;
 			ResultSet rs = std.executeQuery(query);
 			while (rs.next()) {
-				System.out.println(rs.getString(2) + " - " + rs.getString(3));
+				System.out.println(rs.getString(2));
 			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+	}
 
+	public static void printAllJokes(String category) {
+		Optional<String> optCategory = Optional.of(category);
+		printAllJokes(optCategory);
+	}
+
+	public static void printAllJokes() {
+		Optional<String> opt = Optional.empty();
+		printAllJokes(opt);
 	}
 
 	public static void deleteCategory(String category) {
@@ -101,26 +136,28 @@ public abstract class JokeDatabase {
 
 	}
 
-	public static String getRandomJoke(String category) throws ClassNotFoundException, SQLException {
+	public static String getRandomJoke(String category) {
 		String joke = "";
-		Statement std = conn.createStatement();
+		Statement std;
 
-		// get random joke index
-		int jokecount = 1;
-		String count_query = "SELECT COUNT(*) FROM joke WHERE category = '" + category + "'";
-		ResultSet rs_count = std.executeQuery(count_query);
-		while (rs_count.next()) {
-			jokecount = rs_count.getInt(1);
-		}
-		Random r = new Random();
-		int randomJokeNumber = r.nextInt(jokecount - 1) + 1;
+		try {
+			std = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
-		// get joke with specific index
-		String select_query = "SELECT * FROM joke WHERE id = " + randomJokeNumber + " AND category = '" + category
-				+ "'";
-		ResultSet select_rs = std.executeQuery(select_query);
-		while (select_rs.next()) {
-			joke = select_rs.getString(2);
+			// get all jokes of this category
+			String select_query = "SELECT * FROM joke WHERE category = '" + category + "'";
+			ResultSet select_rs = std.executeQuery(select_query);
+			
+			if(select_rs.last()){
+				// get random joke index
+				int jokecount = select_rs.getRow();
+				Random r = new Random();
+				int randomJokeNumber = r.nextInt(jokecount - 1) + 1;
+				//get joke at this index
+				select_rs.absolute(randomJokeNumber);
+				joke = select_rs.getString(2);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 
 		return joke;
