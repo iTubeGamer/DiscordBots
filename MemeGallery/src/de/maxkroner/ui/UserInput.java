@@ -1,5 +1,6 @@
 package de.maxkroner.ui;
 
+import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -47,7 +48,13 @@ public class UserInput {
 			for (int i = 1; i <= answers.length; i++) {
 				System.out.println("(" + i + ") " + answers[i - 1]);
 			}
+			
+			try{
 			result = scanner.nextInt();
+			} catch (InputMismatchException e) {
+				System.err.println("wrong input");
+				scanner.next();
+			}
 		}
 
 		return result;
@@ -70,7 +77,14 @@ public class UserInput {
 			for (int i = 1; i <= answers.length; i++) {
 				System.out.println("(" + i + ") " + answers[i - 1].toString());
 			}
-			result = scanner.nextInt();
+			
+			try{
+				result = scanner.nextInt();
+				} catch (InputMismatchException e) {
+					System.err.println("wrong input");
+					scanner.next();
+				}
+			
 		}
 
 		return answers[result - 1];
@@ -93,7 +107,14 @@ public class UserInput {
 			for (int i = 1; i <= choices.size(); i++) {
 				System.out.println("(" + i + ") " + choices.get(i - 1).toString());
 			}
-			result = scanner.nextInt();
+			
+			try{
+				result = scanner.nextInt();
+				} catch (InputMismatchException e) {
+					System.err.println("wrong input");
+					scanner.next();
+				}
+			
 		}
 
 		return choices.get(result - 1);
