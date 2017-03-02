@@ -34,8 +34,20 @@ public class JokeBot extends BaseBot {
 			sendMessage(joke, channel, true);
 
 		} else {
-			// Todo: I don't know this category yet. Train me by...
+			sendMessage("I dont know the category '" + category + "' yet.", channel, false);
 		}
+	}
+
+	private void tellCategories(IChannel channel) {
+		String categories = "If you use '!joke [category]' i will tell you a joke from the specified category.\n"
+				+ "These are the categories I know so far:\n\n"
+				+ "random - joke from a random category";
+
+		for (String category : jokeCategories) {
+			categories = categories + category + "\n";
+		}
+
+		sendMessage(categories, channel, false);
 	}
 
 	@EventSubscriber
@@ -47,7 +59,7 @@ public class JokeBot extends BaseBot {
 
 	public void updateJokeCategories() {
 		jokeCategories = JokeDatabase.getJokeCategories();
-		
+
 	}
 
 	@EventSubscriber
@@ -58,8 +70,10 @@ public class JokeBot extends BaseBot {
 		if (message.startsWith("!change nick")) {
 			User user = (User) client.getOurUser();
 			channel.getGuild().setUserNickname(user, message.substring(13));
-		} else if (message.startsWith("!joke ")) {
+		} else if ((message.startsWith("!joke ") && (message.length() > 6))) {
 			tellJoke(message.substring(message.indexOf(" ") + 1), channel);
+		} else if (message.equals("!joke")) {
+			tellCategories(channel);
 		}
 	}
 

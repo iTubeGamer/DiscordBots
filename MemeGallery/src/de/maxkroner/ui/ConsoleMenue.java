@@ -40,6 +40,10 @@ public class ConsoleMenue {
 			case 3:
 				printJokes();
 				break;
+			case 4:
+				if(!userinput.getYesNoResult("Are you sure?")){
+					auswahl = 1;
+				}
 			}
 
 		}
