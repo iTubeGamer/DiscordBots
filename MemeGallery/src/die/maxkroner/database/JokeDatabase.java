@@ -11,25 +11,25 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
-public abstract class JokeDatabase {
+public class JokeDatabase {
 	private static final String DB_DRIVER = "org.h2.Driver";
 	private static final String DB_CONNECTION = "jdbc:h2:~/jokes;MV_STORE=FALSE;MVCC=FALSE";
 	private static final String DB_USER = "sa";
 	private static final String DB_PASSWORD = "";
 
-	private static Connection conn;
-
-	public static void connect() {
+	private Connection conn;
+	
+	public JokeDatabase(){
 		try {
 			Class.forName(DB_DRIVER);
 			conn = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
-			System.out.println("Database connected.");
-		} catch (ClassNotFoundException | SQLException e) {
+		} catch (SQLException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
+		System.out.println("Database connected.");
 	}
 
-	public static void disconnect() {
+	public void close() {
 		try {
 			conn.close();
 			System.out.println("Database disconnected.");
@@ -38,7 +38,7 @@ public abstract class JokeDatabase {
 		}
 	}
 
-	public static void createTable() {
+	public void createTable() {
 		try {
 			Statement std = conn.createStatement();
 			std.execute("DROP TABLE IF EXISTS joke");
@@ -49,7 +49,7 @@ public abstract class JokeDatabase {
 		}
 	}
 
-	public static List<String> getJokeCategories() {
+	public List<String> getJokeCategories() {
 		List<String> categories = new ArrayList<>();
 
 		Statement std;
@@ -67,7 +67,7 @@ public abstract class JokeDatabase {
 		return categories;
 	}
 
-	public static void insertJoke(String joke, String category) {
+	public void insertJoke(String joke, String category) {
 		try {
 			Statement std = conn.createStatement();
 			String query = "INSERT INTO joke (text, category) VALUES ('" + joke + "','" + category + "');";
@@ -78,7 +78,7 @@ public abstract class JokeDatabase {
 
 	}
 
-	public static void insertJokes(List<String> jokes, String category) {
+	public void insertJokes(List<String> jokes, String category) {
 		try {
 			String insertString = "INSERT INTO joke (text, category) VALUES ( ? , ? );";
 			PreparedStatement insertJokes = conn.prepareStatement(insertString);
@@ -96,7 +96,7 @@ public abstract class JokeDatabase {
 
 	}
 
-	private static void printAllJokes(Optional<String> category) {
+	private void printAllJokes(Optional<String> category) {
 		String whereClause = "";
 		if (category.isPresent()) {
 			whereClause = " WHERE category = '" + category.get() + "'";
@@ -115,17 +115,17 @@ public abstract class JokeDatabase {
 		}
 	}
 
-	public static void printAllJokes(String category) {
+	public void printAllJokes(String category) {
 		Optional<String> optCategory = Optional.of(category);
 		printAllJokes(optCategory);
 	}
 
-	public static void printAllJokes() {
+	public void printAllJokes() {
 		Optional<String> opt = Optional.empty();
 		printAllJokes(opt);
 	}
 
-	public static void deleteCategory(String category) {
+	public void deleteCategory(String category) {
 		try {
 			Statement std = conn.createStatement();
 			String query = "DELETE FROM joke WHERE category = '" + category + "'";
@@ -136,7 +136,12 @@ public abstract class JokeDatabase {
 
 	}
 
-	public static String getRandomJoke(String category) {
+	public String getRandomJoke(Optional<String> category) {
+		String whereClause = "";
+		if (category.isPresent()) {
+			whereClause = " WHERE category = '" + category.get() + "'";
+		}
+		
 		String joke = "";
 		Statement std;
 
@@ -144,7 +149,7 @@ public abstract class JokeDatabase {
 			std = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
 			// get all jokes of this category
-			String select_query = "SELECT * FROM joke WHERE category = '" + category + "'";
+			String select_query = "SELECT * FROM joke" + whereClause;
 			ResultSet select_rs = std.executeQuery(select_query);
 			
 			if(select_rs.last()){

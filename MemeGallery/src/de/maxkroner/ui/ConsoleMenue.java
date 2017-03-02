@@ -15,11 +15,13 @@ public class ConsoleMenue {
 	private JokeBot bot;
 	private UserInput userinput;
 	private Scanner scanner;
+	private JokeDatabase jokeDatabase;
 
-	public ConsoleMenue(UserInput userinput, Scanner scanner) {
+	public ConsoleMenue(UserInput userinput, Scanner scanner, JokeDatabase jokeDatabase) {
 		super();
 		this.userinput = userinput;
 		this.scanner = scanner;
+		this.jokeDatabase = jokeDatabase;
 	}
 
 	public void startMenue(JokeBot jokebot) {
@@ -60,12 +62,12 @@ public class ConsoleMenue {
 	private void printJokes() {
 		if (userinput.getYesNoResult("Select a category?")) {
 			String category;
-			category = (String) userinput.getMultipleChoiceResult("Which category?", JokeDatabase.getJokeCategories());
+			category = (String) userinput.getMultipleChoiceResult("Which category?", jokeDatabase.getJokeCategories());
 
 			System.out.println("ok, printing all jokes of category " + category);
-			JokeDatabase.printAllJokes(category);
+			jokeDatabase.printAllJokes(category);
 		} else {
-			JokeDatabase.printAllJokes();
+			jokeDatabase.printAllJokes();
 		}
 	}
 
@@ -76,7 +78,7 @@ public class ConsoleMenue {
 		switch (auswahl) {
 		case 1:
 			if (userinput.getYesNoResult("Really? All Jokes will be deleted!")) {
-				JokeDatabase.createTable();
+				jokeDatabase.createTable();
 				System.out.println("Database has been reset.");
 			}
 			break;
@@ -96,7 +98,7 @@ public class ConsoleMenue {
 
 		// Delete existing Flachwitze?
 		if (userinput.getYesNoResult("Delete existing Flachwitze?")) {
-			JokeDatabase.deleteCategory("flach");
+			jokeDatabase.deleteCategory("flach");
 		}
 
 		// read jokes
@@ -104,11 +106,11 @@ public class ConsoleMenue {
 		List<String> jokes = reader.getJokes(anzahl);
 
 		// write jokes to database
-		JokeDatabase.insertJokes(jokes, "flach");
+		jokeDatabase.insertJokes(jokes, "flach");
 
 		// print all Flachwitze?
 		if (userinput.getYesNoResult("Print all read Flachwitze?")) {
-			JokeDatabase.printAllJokes("flach");
+			jokeDatabase.printAllJokes("flach");
 		}
 
 		// update joke categories
@@ -133,7 +135,7 @@ public class ConsoleMenue {
 		List<String> jokes = JokeFileReader.getJokes(path, (FileFormat) format, printAllJokes);
 
 		// write jokes to database
-		JokeDatabase.insertJokes(jokes, category);
+		jokeDatabase.insertJokes(jokes, category);
 
 		// update joke categories
 		bot.updateJokeCategories();

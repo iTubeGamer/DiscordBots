@@ -2,6 +2,7 @@ package de.maxkroner.implementation;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 import de.maxkroner.ui.ConsoleMenue;
 import die.maxkroner.database.JokeDatabase;
@@ -21,16 +22,22 @@ public class JokeBot extends BaseBot {
 	private static final String profile_image_imageType = "jpeg";
 	private List<String> jokeCategories;
 	private ConsoleMenue consoleMenue;
+	private JokeDatabase jokeDatabase;
 
-	public JokeBot(String token, ConsoleMenue consoleMenue) {
+	public JokeBot(String token, ConsoleMenue consoleMenue, JokeDatabase jokeDatabase) {
 		super(token, bot_name, bot_status, profile_image_url, profile_image_imageType);
 		this.consoleMenue = consoleMenue;
+		this.jokeDatabase = jokeDatabase;
 	}
 
 	private void tellJoke(String category, IChannel channel) {
-		if (jokeCategories.contains(category)) {
+		if (category.equals("random")){
+			String joke = jokeDatabase.getRandomJoke(Optional.empty());
+			sendMessage(joke, channel, true);
+		}
+		else if (jokeCategories.contains(category)) {
 
-			String joke = JokeDatabase.getRandomJoke(category);
+			String joke = jokeDatabase.getRandomJoke(Optional.of(category));
 			sendMessage(joke, channel, true);
 
 		} else {
@@ -39,14 +46,15 @@ public class JokeBot extends BaseBot {
 	}
 
 	private void tellCategories(IChannel channel) {
-		String categories = "If you use '!joke [category]' i will tell you a joke from the specified category.\n"
-				+ "These are the categories I know so far:\n\n"
-				+ "random - joke from a random category";
+		String categories = "If you use `!joke` `[category]` i will tell you a joke from the specified category.\n"
+				+ "These are the categories I know so far:\n\n";
 
 		for (String category : jokeCategories) {
-			categories = categories + category + "\n";
+			categories = categories + "`" + category + "`" + "\n";
 		}
 
+		categories = categories + "Use `random` for a joke from any category.";
+		
 		sendMessage(categories, channel, false);
 	}
 
@@ -58,7 +66,7 @@ public class JokeBot extends BaseBot {
 	}
 
 	public void updateJokeCategories() {
-		jokeCategories = JokeDatabase.getJokeCategories();
+		jokeCategories = jokeDatabase.getJokeCategories();
 
 	}
 
