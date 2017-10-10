@@ -3,21 +3,21 @@ package de.maxkroner.ui;
 import java.util.List;
 import java.util.Scanner;
 
+import de.maxkroner.database.JokeDatabase;
 import de.maxkroner.enums.FileFormat;
 import de.maxkroner.implementation.JokeBot;
 import de.maxkroner.main.Main;
 import de.maxkroner.reader.FlachwitzUrlReader;
 import de.maxkroner.reader.JokeFileReader;
-import die.maxkroner.database.JokeDatabase;
 import sx.blah.discord.handle.obj.IGuild;
 
-public class ConsoleMenue {
+public class JokeBotMenue {
 	private JokeBot bot;
 	private UserInput userinput;
 	private Scanner scanner;
 	private JokeDatabase jokeDatabase;
 
-	public ConsoleMenue(UserInput userinput, Scanner scanner, JokeDatabase jokeDatabase) {
+	public JokeBotMenue(UserInput userinput, Scanner scanner, JokeDatabase jokeDatabase) {
 		super();
 		this.userinput = userinput;
 		this.scanner = scanner;
@@ -27,10 +27,10 @@ public class ConsoleMenue {
 	public void startMenue(JokeBot jokebot) {
 		bot = jokebot;
 		int auswahl = 0;
-		while (!(auswahl == 4)) {
+		while (!(auswahl == 5 | auswahl == 4)) {
 
 			auswahl = userinput.getMultipleChoiceResult("What to do?", "manage database", "reset bot nickname",
-					"print jokes from database", "shut down bot");
+					"print jokes from database", "leave menue, but keep bot running", "shut down bot");
 
 			switch (auswahl) {
 			case 1:
@@ -44,12 +44,17 @@ public class ConsoleMenue {
 				break;
 			case 4:
 				if(!userinput.getYesNoResult("Are you sure?")){
-					auswahl = 1;
+					auswahl = 1;	
+				}
+				break;
+			case 5:
+				if(userinput.getYesNoResult("Are you sure?")){
+					Main.exit();
 				}
 			}
 
 		}
-		Main.exit();
+		
 
 	}
 

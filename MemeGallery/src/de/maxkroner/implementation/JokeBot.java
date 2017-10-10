@@ -4,8 +4,8 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
-import de.maxkroner.ui.ConsoleMenue;
-import die.maxkroner.database.JokeDatabase;
+import de.maxkroner.database.JokeDatabase;
+import de.maxkroner.ui.JokeBotMenue;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.MessageReceivedEvent;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
@@ -21,12 +21,12 @@ public class JokeBot extends BaseBot {
 	private static final String profile_image_url = "https://s-media-cache-ak0.pinimg.com/736x/b6/cc/b0/b6ccb09b0cc1de2b2d491798f870ab6d.jpg";
 	private static final String profile_image_imageType = "jpeg";
 	private List<String> jokeCategories;
-	private ConsoleMenue consoleMenue;
+	private JokeBotMenue jokeBotMenue;
 	private JokeDatabase jokeDatabase;
 
-	public JokeBot(String token, ConsoleMenue consoleMenue, JokeDatabase jokeDatabase) {
+	public JokeBot(String token, JokeBotMenue jokeBotMenue, JokeDatabase jokeDatabase) {
 		super(token, bot_name, bot_status, profile_image_url, profile_image_imageType);
-		this.consoleMenue = consoleMenue;
+		this.jokeBotMenue = jokeBotMenue;
 		this.jokeDatabase = jokeDatabase;
 	}
 
@@ -62,7 +62,7 @@ public class JokeBot extends BaseBot {
 	public void onReady(ReadyEvent event) {
 		super.onReady(event);
 		updateJokeCategories();
-		consoleMenue.startMenue(this);
+		jokeBotMenue.startMenue(this);
 	}
 
 	public void updateJokeCategories() {

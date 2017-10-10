@@ -1,4 +1,4 @@
-package die.maxkroner.database;
+package de.maxkroner.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -24,6 +24,7 @@ public class JokeDatabase {
 			Class.forName(DB_DRIVER);
 			conn = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
 		} catch (SQLException | ClassNotFoundException e) {
+			System.out.println("Database connection failed.");
 			e.printStackTrace();
 		}
 		System.out.println("Database connected.");
