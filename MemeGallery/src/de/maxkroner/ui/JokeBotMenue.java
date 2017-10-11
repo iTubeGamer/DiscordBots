@@ -2,6 +2,7 @@ package de.maxkroner.ui;
 
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import de.maxkroner.database.JokeDatabase;
 import de.maxkroner.enums.FileFormat;
@@ -11,54 +12,58 @@ import de.maxkroner.main.Main;
 import de.maxkroner.reader.FlachwitzUrlReader;
 import de.maxkroner.reader.JokeFileReader;
 
-public class JokeBotMenue extends BotMenue{
+public class JokeBotMenue extends BotMenue {
 	private JokeDatabase jokeDatabase;
 
 	public JokeBotMenue(Scanner scanner, UserInput userInput, JokeDatabase jokeDatabase) {
 		super(scanner, userInput);
 		this.jokeDatabase = jokeDatabase;
 	}
-	
-	public JokeDatabase getJokeDatabase(){
+
+	public JokeDatabase getJokeDatabase() {
 		return jokeDatabase;
 	}
 
 	public UserInput getUserinput() {
 		return userInput;
 	}
+
 	public Scanner getScanner() {
 		return scanner;
 	}
 
 	public void startMenue(Bot bot) {
 		super.startMenue(bot);
-		int auswahl = 0;
-		while (!(auswahl == 5 | auswahl == 4)) {
+		
+				Integer auswahl = 0;
+				while (!(auswahl == 5 | auswahl == 4)) {
 
-			auswahl = userInput.getMultipleChoiceResult("What to do?", "manage database", "configure bot",
-					"print jokes from database", "leave menue, but keep bot running", "shut down bot");
+					auswahl = userInput.getMultipleChoiceResult("What to do?", "manage database", "configure bot",
+							"print jokes from database", "leave menue, but keep bot running", "shut down bot");
 
-			switch (auswahl) {
-			case 1:
-				manageDatabase();
-				break;
-			case 2:
-				customizeBot();
-				break;
-			case 3:
-				printJokes();
-				break;
-			case 4:
-				if(!userInput.getYesNoResult("Are you sure?")){
-					auswahl = 1;	
+					switch (auswahl) {
+					case 1:
+						manageDatabase();
+						break;
+					case 2:
+						customizeBot();
+						break;
+					case 3:
+						printJokes();
+						break;
+					case 4:
+						if (!userInput.getYesNoResult("Are you sure?")) {
+							auswahl = 1;
+						}
+						break;
+					case 5:
+						if (userInput.getYesNoResult("Are you sure?")) {
+							Main.exit();
+						}
+					}
 				}
-				break;
-			case 5:
-				if(userInput.getYesNoResult("Are you sure?")){
-					Main.exit();
-				}
-			}
-		}	
+
+			
 	}
 
 	private void printJokes() {
@@ -146,6 +151,5 @@ public class JokeBotMenue extends BotMenue{
 		jokeBot.updateJokeCategories();
 
 	}
-
 
 }

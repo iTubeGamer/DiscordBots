@@ -53,8 +53,15 @@ public abstract class Bot {
 
 	@EventSubscriber
 	public void onReady(ReadyEvent event) {
+		Bot bot = this;
 		bot_name = client.getOurUser().getName();
-		botMenue.startMenue(this);
+		
+		new Thread() {
+			@Override
+			public void run() {
+				botMenue.startMenue(bot);
+			}
+		}.start();
 		System.out.println("Logged in as " + bot_name);
 	}
 
