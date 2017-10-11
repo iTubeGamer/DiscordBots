@@ -91,7 +91,7 @@ public class UserInput {
 	}
 
 	/**
-	 * Prints the provided question an the possible list elements
+	 * Prints the provided question and the possible list elements
 	 * 
 	 * @param question
 	 *            the question to ask the user
@@ -118,5 +118,16 @@ public class UserInput {
 		}
 
 		return choices.get(result - 1);
+	}
+	
+	/**
+	 * Prints the provided question and returns user answer
+	 * @param question
+	 * 			the question to ask the user
+	 * @return the provided user answer as String
+	 */
+	public String getStringAnswer(String question){
+		System.out.println(question);
+		return scanner.next();
 	}
 }

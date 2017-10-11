@@ -3,31 +3,29 @@ package de.maxkroner.implementation;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Scanner;
 
 import de.maxkroner.database.JokeDatabase;
 import de.maxkroner.ui.JokeBotMenue;
+import de.maxkroner.ui.UserInput;
 import sx.blah.discord.api.events.EventSubscriber;
-import sx.blah.discord.handle.impl.events.MessageReceivedEvent;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
+import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.impl.obj.User;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.util.DiscordException;
 import sx.blah.discord.util.MissingPermissionsException;
 import sx.blah.discord.util.RateLimitException;
 
-public class JokeBot extends BaseBot {
-	private static final String bot_name = "Witzbold";
-	private static final String bot_status = "Lachflash";
-	private static final String profile_image_url = "https://s-media-cache-ak0.pinimg.com/736x/b6/cc/b0/b6ccb09b0cc1de2b2d491798f870ab6d.jpg";
-	private static final String profile_image_imageType = "jpeg";
+public class JokeBot extends Bot {
+	private static final String token = "MjUwMzQwMjI5NzA4MjUxMTM2.DL9RIw.0HcxTLw-K_VCEf2yiipaYYX-428";
 	private List<String> jokeCategories;
-	private JokeBotMenue jokeBotMenue;
 	private JokeDatabase jokeDatabase;
 
-	public JokeBot(String token, JokeBotMenue jokeBotMenue, JokeDatabase jokeDatabase) {
-		super(token, bot_name, bot_status, profile_image_url, profile_image_imageType);
-		this.jokeBotMenue = jokeBotMenue;
-		this.jokeDatabase = jokeDatabase;
+	public JokeBot(Scanner scanner, UserInput userInput) {
+		super(token, new JokeBotMenue(scanner, userInput, new JokeDatabase()));
+		JokeBotMenue jokeBotMenue= (JokeBotMenue) botMenue;
+		this.jokeDatabase = jokeBotMenue.getJokeDatabase();
 	}
 
 	private void tellJoke(String category, IChannel channel) {
@@ -62,7 +60,6 @@ public class JokeBot extends BaseBot {
 	public void onReady(ReadyEvent event) {
 		super.onReady(event);
 		updateJokeCategories();
-		jokeBotMenue.startMenue(this);
 	}
 
 	public void updateJokeCategories() {
@@ -84,5 +81,9 @@ public class JokeBot extends BaseBot {
 			tellCategories(channel);
 		}
 	}
-
+	
+	public void disconnect(){
+		super.disconnect();
+		jokeDatabase.close();
+	}
 }

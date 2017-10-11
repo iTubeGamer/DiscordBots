@@ -1,6 +1,7 @@
 package de.maxkroner.database;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,11 +24,22 @@ public class JokeDatabase {
 		try {
 			Class.forName(DB_DRIVER);
 			conn = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
+			createTableIfNotExists();
+			System.out.println("Database connected.");
 		} catch (SQLException | ClassNotFoundException e) {
 			System.out.println("Database connection failed.");
 			e.printStackTrace();
-		}
-		System.out.println("Database connected.");
+		}		
+	}
+
+	private void createTableIfNotExists() {
+		try {
+			Statement std = conn.createStatement();
+			std.execute(
+					"CREATE TABLE IF NOT EXISTS joke(id int auto_increment primary key, text varchar(255), category varchar(255))");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}	
 	}
 
 	public void close() {
@@ -107,6 +119,9 @@ public class JokeDatabase {
 			Statement std = conn.createStatement();
 			String query = "SELECT * FROM joke" + whereClause;
 			ResultSet rs = std.executeQuery(query);
+			if(!rs.next()){
+				System.out.println("There are no jokes to print...");
+			}
 			while (rs.next()) {
 				System.out.println(rs.getString(2));
 			}

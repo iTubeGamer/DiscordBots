@@ -5,31 +5,37 @@ import java.util.Scanner;
 
 import de.maxkroner.database.JokeDatabase;
 import de.maxkroner.enums.FileFormat;
+import de.maxkroner.implementation.Bot;
 import de.maxkroner.implementation.JokeBot;
 import de.maxkroner.main.Main;
 import de.maxkroner.reader.FlachwitzUrlReader;
 import de.maxkroner.reader.JokeFileReader;
-import sx.blah.discord.handle.obj.IGuild;
 
-public class JokeBotMenue {
-	private JokeBot bot;
-	private UserInput userinput;
-	private Scanner scanner;
+public class JokeBotMenue extends BotMenue{
 	private JokeDatabase jokeDatabase;
 
-	public JokeBotMenue(UserInput userinput, Scanner scanner, JokeDatabase jokeDatabase) {
-		super();
-		this.userinput = userinput;
-		this.scanner = scanner;
+	public JokeBotMenue(Scanner scanner, UserInput userInput, JokeDatabase jokeDatabase) {
+		super(scanner, userInput);
 		this.jokeDatabase = jokeDatabase;
 	}
+	
+	public JokeDatabase getJokeDatabase(){
+		return jokeDatabase;
+	}
 
-	public void startMenue(JokeBot jokebot) {
-		bot = jokebot;
+	public UserInput getUserinput() {
+		return userInput;
+	}
+	public Scanner getScanner() {
+		return scanner;
+	}
+
+	public void startMenue(Bot bot) {
+		super.startMenue(bot);
 		int auswahl = 0;
 		while (!(auswahl == 5 | auswahl == 4)) {
 
-			auswahl = userinput.getMultipleChoiceResult("What to do?", "manage database", "reset bot nickname",
+			auswahl = userInput.getMultipleChoiceResult("What to do?", "manage database", "configure bot",
 					"print jokes from database", "leave menue, but keep bot running", "shut down bot");
 
 			switch (auswahl) {
@@ -37,52 +43,44 @@ public class JokeBotMenue {
 				manageDatabase();
 				break;
 			case 2:
-				resetNickname();
+				customizeBot();
 				break;
 			case 3:
 				printJokes();
 				break;
 			case 4:
-				if(!userinput.getYesNoResult("Are you sure?")){
+				if(!userInput.getYesNoResult("Are you sure?")){
 					auswahl = 1;	
 				}
 				break;
 			case 5:
-				if(userinput.getYesNoResult("Are you sure?")){
+				if(userInput.getYesNoResult("Are you sure?")){
 					Main.exit();
 				}
 			}
-
-		}
-		
-
-	}
-
-	private void resetNickname() {
-		List<IGuild> guilds = bot.getClient().getGuilds();
-		IGuild guild = (IGuild) userinput.getMultipleChoiceResult("Which guild?", guilds);
-		bot.resetNickname(guild);
+		}	
 	}
 
 	private void printJokes() {
-		if (userinput.getYesNoResult("Select a category?")) {
-			String category;
-			category = (String) userinput.getMultipleChoiceResult("Which category?", jokeDatabase.getJokeCategories());
+		List<String> categories = jokeDatabase.getJokeCategories();
+		if (!categories.isEmpty() && userInput.getYesNoResult("Select a category?")) {
+			String chosenCategory;
+			chosenCategory = (String) userInput.getMultipleChoiceResult("Which category?", categories);
 
-			System.out.println("ok, printing all jokes of category " + category);
-			jokeDatabase.printAllJokes(category);
+			System.out.println("ok, printing all jokes of category " + chosenCategory);
+			jokeDatabase.printAllJokes(chosenCategory);
 		} else {
 			jokeDatabase.printAllJokes();
 		}
 	}
 
 	private void manageDatabase() {
-		int auswahl = userinput.getMultipleChoiceResult("Which database change did you think of?", "reset database",
+		int auswahl = userInput.getMultipleChoiceResult("Which database change did you think of?", "reset database",
 				"import jokes from file", "import Flachwitze", "never mind");
 
 		switch (auswahl) {
 		case 1:
-			if (userinput.getYesNoResult("Really? All Jokes will be deleted!")) {
+			if (userInput.getYesNoResult("Really? All Jokes will be deleted!")) {
 				jokeDatabase.createTable();
 				System.out.println("Database has been reset.");
 			}
@@ -102,7 +100,7 @@ public class JokeBotMenue {
 		int anzahl = scanner.nextInt();
 
 		// Delete existing Flachwitze?
-		if (userinput.getYesNoResult("Delete existing Flachwitze?")) {
+		if (userInput.getYesNoResult("Delete existing Flachwitze?")) {
 			jokeDatabase.deleteCategory("flach");
 		}
 
@@ -114,12 +112,13 @@ public class JokeBotMenue {
 		jokeDatabase.insertJokes(jokes, "flach");
 
 		// print all Flachwitze?
-		if (userinput.getYesNoResult("Print all read Flachwitze?")) {
+		if (userInput.getYesNoResult("Print all read Flachwitze?")) {
 			jokeDatabase.printAllJokes("flach");
 		}
 
 		// update joke categories
-		bot.updateJokeCategories();
+		JokeBot jokeBot = (JokeBot) bot;
+		jokeBot.updateJokeCategories();
 	}
 
 	private void readFromFile(Scanner scanner) {
@@ -128,7 +127,7 @@ public class JokeBotMenue {
 		String path = scanner.next() + scanner.nextLine();
 
 		// get format of file
-		Enum<?> format = userinput.getMultipleChoiceResult("How is the file formatted?", FileFormat.ONE_PER_LINE,
+		Enum<?> format = userInput.getMultipleChoiceResult("How is the file formatted?", FileFormat.ONE_PER_LINE,
 				FileFormat.SEPERATED_BY_FREE_LINE);
 
 		// get joke category
@@ -136,14 +135,17 @@ public class JokeBotMenue {
 		String category = scanner.next();
 
 		// read jokes, print if chosen
-		Boolean printAllJokes = userinput.getYesNoResult("Print all read jokes?");
+		Boolean printAllJokes = userInput.getYesNoResult("Print all read jokes?");
 		List<String> jokes = JokeFileReader.getJokes(path, (FileFormat) format, printAllJokes);
 
 		// write jokes to database
 		jokeDatabase.insertJokes(jokes, category);
 
 		// update joke categories
-		bot.updateJokeCategories();
+		JokeBot jokeBot = (JokeBot) bot;
+		jokeBot.updateJokeCategories();
 
 	}
+
+
 }

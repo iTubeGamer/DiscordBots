@@ -2,33 +2,36 @@ package de.maxkroner.main;
 
 import java.util.Scanner;
 
-import de.maxkroner.database.JokeDatabase;
+import de.maxkroner.implementation.Bot;
 import de.maxkroner.implementation.JokeBot;
-import de.maxkroner.ui.JokeBotMenue;
+import de.maxkroner.implementation.PrivateBot;
 import de.maxkroner.ui.UserInput;
 
 public class Main {
 
-	private static JokeBot bot;
 	private static Scanner scanner = new Scanner(System.in);
-	private static JokeDatabase jokeDatabase = new JokeDatabase();
 	private static UserInput userInput = new UserInput(scanner);
-	private static JokeBotMenue jokeBotMenue = new JokeBotMenue(userInput, scanner, jokeDatabase);
-
+	private static Bot bot;
 
 	public static void main(String[] args) {
-		startBot(args);
+		startBotLaunchMenue();
 	}
 
-	private static void startBot(String[] args) {
-		if (args.length < 1) { // Needs a bot token provided
-			throw new IllegalArgumentException("Please provide the Bot-Token as argument!");
+	private static void startBotLaunchMenue() {
+
+		int auswahl = userInput.getMultipleChoiceResult("Which bot should be started?", "JokeBot", "PrivateBot");
+		switch (auswahl) {
+		case 1:
+			bot = new JokeBot(scanner, userInput);
+			break;
+		case 2:
+			bot = new PrivateBot(scanner, userInput);
+			break;
 		}
-		bot = new JokeBot(args[0], jokeBotMenue, jokeDatabase);
+
 	}
 
 	public static void exit() {
-		jokeDatabase.close();
 		bot.disconnect();
 		System.out.println("finished");
 		System.exit(0);
