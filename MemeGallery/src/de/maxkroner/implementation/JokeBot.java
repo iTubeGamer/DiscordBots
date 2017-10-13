@@ -68,8 +68,7 @@ public class JokeBot extends Bot {
 	}
 
 	@EventSubscriber
-	public void onMessageReceivedEvent(MessageReceivedEvent event) throws MissingPermissionsException, DiscordException,
-			RateLimitException, ClassNotFoundException, SQLException {
+	public void onMessageReceivedEvent(MessageReceivedEvent event) {
 		String message = event.getMessage().getContent();
 		IChannel channel = event.getMessage().getChannel();
 		if (message.startsWith("!change nick")) {

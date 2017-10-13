@@ -4,7 +4,7 @@ import java.util.Scanner;
 
 import de.maxkroner.implementation.Bot;
 import de.maxkroner.implementation.JokeBot;
-import de.maxkroner.implementation.PrivateBot;
+import de.maxkroner.implementation.privateBot.PrivateBot;
 import de.maxkroner.ui.UserInput;
 
 public class Main {

@@ -128,6 +128,6 @@ public class UserInput {
 	 */
 	public String getStringAnswer(String question){
 		System.out.println(question);
-		return scanner.next();
+		return scanner.nextLine();
 	}
 }
