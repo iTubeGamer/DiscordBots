@@ -14,7 +14,6 @@ public class TempChannelMap {
 	public TempChannelMap() {
 		this.channelTempChannelMap = new HashMap<IChannel, TempChannel>();
 		this.userTempChannelMap = new HashMap<IUser, ArrayList<TempChannel>>();
-		ArrayList<TempChannel> tempChannelByUser = new ArrayList<>();
 	}
 	
 	public void addTempChannel(TempChannel tempChannel){
@@ -33,12 +32,21 @@ public class TempChannelMap {
 		userTempChannelMap.get(tempChannel.getOwner()).remove(tempChannel);
 	}
 	
-	public TempChannel getTempChannelForChannel(IChannel channel){
+	public boolean tempChannelForChannelExists(IChannel channel){
+		return channelTempChannelMap.containsKey(channel);
+	}
+	
+ 	public TempChannel getTempChannelForChannel(IChannel channel){
 		return channelTempChannelMap.get(channel);
 	}
 	
 	public ArrayList<TempChannel> getTempChannelListForUser(IUser user){
-		return userTempChannelMap.get(user);
+		if (userTempChannelMap.containsKey(user)){
+			return userTempChannelMap.get(user);
+		}
+		
+		return new ArrayList<TempChannel>();
+		
 	}
 	
 	public Collection<TempChannel> getAllTempChannel(){
@@ -46,6 +54,9 @@ public class TempChannelMap {
 	}
 	
 	public int getUserChannelCount(IUser user){
+		if(!userTempChannelMap.containsKey(user)){
+			return 0;
+		}
 		return getTempChannelListForUser(user).size();
 	}
 	
