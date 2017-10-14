@@ -1,32 +1,39 @@
 package de.maxkroner.implementation.privateBot;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class CheckTempChannel implements Runnable {
-	private ArrayList<TempChannel> allTempChannel;
+import sx.blah.discord.handle.obj.IGuild;
+
+public class CheckTempChannel<E> implements Runnable {
+	private HashMap<IGuild, TempChannelMap> channelMap;
 	
-	public CheckTempChannel(ArrayList<TempChannel> allTempChannel, ScheduledExecutorService executor) {
+	public CheckTempChannel(HashMap<IGuild, TempChannelMap> channelMap, ScheduledExecutorService executor) {
 		super();
-		this.allTempChannel = allTempChannel;
+		this.channelMap = channelMap;
 	}
 	
 	@Override
 	public void run() {
-		if (!allTempChannel.isEmpty()){
-			for(TempChannel tempChannel : allTempChannel){
-				if(tempChannel.getChannel() != null){
+		//iterate over the tempChannelMaps per Guild
+		for(TempChannelMap tempChannelMap : channelMap.values()){
+			//iterate over all the tempChannels of the Guild (use Iterator.hasNext()) as Elements get deleted while iterating)
+			for(Iterator<TempChannel> iterator = tempChannelMap.getAllTempChannel().iterator(); iterator.hasNext();){
+				TempChannel tempChannel = iterator.next();
+				//if Channel still exists
+				if(!tempChannel.getChannel().isDeleted()){
 					if (tempChannel.getChannel().getConnectedUsers().isEmpty()){
 						tempChannel.setEmptyMinuts(tempChannel.getEmptyMinuts() + 1);
 						if(tempChannel.getEmptyMinuts() >= tempChannel.getTimeoutInMinutes()){
 							tempChannel.getChannel().delete();
-							allTempChannel.remove(tempChannel);
 						}
 					} else {
 						tempChannel.setEmptyMinuts(0);
 					}
+				//if Channel was already deleted
 				} else {
-					allTempChannel.remove(tempChannel);
+					tempChannelMap.removeTempChannel(tempChannel);
 				}
 				
 			}
