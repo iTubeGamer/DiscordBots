@@ -215,7 +215,7 @@ public class PrivateBot extends Bot {
 		}
 
 		String name = getRandomName();
-		List<IUser> allowedUsers = null; // null = everyone allowed
+		List<IUser> allowedUsers = null; // null = everyone allowed in the new channel
 		List<IUser> movePlayers = new ArrayList<IUser>();
 		int limit = 0;
 		int timeout = 5;
@@ -248,11 +248,27 @@ public class PrivateBot extends Bot {
 							channel, false);
 				}
 				break;
-			case "t":
+			case "l":
 				if (modifier.getParameterList().length >= 1) {
 					int given_limit = Integer.parseInt(modifier.getParameterList()[0]);
-					if (given_limit >= 1 && given_limit <= 180) {
+					if (given_limit >= 1 && given_limit <= 99) {
 						limit = given_limit;
+					} else {
+						sendMessage(
+								"Please use the user-limit-modifier (-l) with a parameter to specify the user-limit. (f.e. !c -l 5)",
+								channel, false);
+					}
+				} else {
+					sendMessage(
+							"Please use the user-limit-modifier (-l) with a parameter to specify the user-limit. (f.e. !c -l 5)",
+							channel, false);
+				}
+				break;
+			case "t":
+				if (modifier.getParameterList().length >= 1) {
+					int given_timeout = Integer.parseInt(modifier.getParameterList()[0]);
+					if (given_timeout >= 1 && given_timeout <= 180) {
+						timeout = given_timeout;
 					} else {
 						sendMessage(
 								"Please use the timout-modifier (-t) only with a parameter between 1-180 minutes (f.e. !c -t 5)",
@@ -267,6 +283,7 @@ public class PrivateBot extends Bot {
 			}
 		}
 		
+		//if all the players that are allowed in the channel (-p) should be moved, add them to the move list
 		if (moveAllowedPlayers){
 			movePlayers = new ArrayList<IUser>();
 			movePlayers.addAll(allowedUsers);
