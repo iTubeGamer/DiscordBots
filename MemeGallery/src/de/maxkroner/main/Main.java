@@ -4,6 +4,7 @@ import java.util.Scanner;
 
 import de.maxkroner.implementation.Bot;
 import de.maxkroner.implementation.JokeBot;
+import de.maxkroner.implementation.ScamBot;
 import de.maxkroner.implementation.privateBot.PrivateBot;
 import de.maxkroner.ui.UserInput;
 
@@ -14,19 +15,38 @@ public class Main {
 	private static Bot bot;
 
 	public static void main(String[] args) {
-		startBotLaunchMenue();
+		switch (args.length){
+		case 0: System.out.println("Please provide a token as argument.");
+				System.exit(1);
+				break;
+		case 1: startBotLaunchMenue(args[0]);
+		case 2: startBot(args[0], args[1]);
+		}
+		
 	}
 
-	private static void startBotLaunchMenue() {
+	private static void startBot(String botName, String token) {
+		switch(botName){
+		case "JokeBot": new JokeBot(token, scanner, userInput); break;
+		case "PrivateBot": new PrivateBot(token, scanner, userInput); break;
+		case "ScamBot": new ScamBot(token, scanner, userInput); break;
+		}
+		
+	}
 
-		int auswahl = userInput.getMultipleChoiceResult("Which bot should be started?", "JokeBot", "PrivateBot");
+	private static void startBotLaunchMenue(String token) {
+
+		int auswahl = userInput.getMultipleChoiceResult("Which bot should be started?", "JokeBot", "PrivateBot", "ScamBot");
 		switch (auswahl) {
-		case 1:
-			bot = new JokeBot(scanner, userInput);
-			break;
-		case 2:
-			bot = new PrivateBot(scanner, userInput);
-			break;
+			case 1:
+				new JokeBot(token, scanner, userInput);
+				break;
+			case 2:
+				new PrivateBot(token, scanner, userInput);
+				break;
+			case 3:
+				new ScamBot(token, scanner, userInput);
+				break;
 		}
 
 	}

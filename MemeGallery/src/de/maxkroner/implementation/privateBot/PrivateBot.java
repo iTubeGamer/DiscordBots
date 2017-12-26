@@ -40,7 +40,6 @@ import sx.blah.discord.util.MessageTokenizer;
 import sx.blah.discord.util.MessageTokenizer.MentionToken;
 
 public class PrivateBot extends Bot {
-	private static final String token = "MzY3NjY1NzIwMDU1ODI0Mzg0.DL-0Pg.UkGtH2Y8xTCQbWDAmUqGJdykbW8";
 	private static ArrayList<String> channelNames = new ArrayList<>();
 	private static HashMap<IGuild, TempChannelMap> tempChannelsByGuild = new HashMap<>();
 	private static final EnumSet<Permissions> voice_connect = EnumSet.of(Permissions.VOICE_CONNECT);
@@ -51,7 +50,7 @@ public class PrivateBot extends Bot {
 		fileToArray("channelnames.txt", channelNames, 0);
 	}
 
-	public PrivateBot(Scanner scanner, UserInput userInput) {
+	public PrivateBot(String token, Scanner scanner, UserInput userInput) {
 		super(token, new PrivateBotMenue(scanner, userInput));
 	}
 

@@ -1,6 +1,5 @@
 package de.maxkroner.implementation;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
@@ -13,16 +12,12 @@ import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.impl.obj.User;
 import sx.blah.discord.handle.obj.IChannel;
-import sx.blah.discord.util.DiscordException;
-import sx.blah.discord.util.MissingPermissionsException;
-import sx.blah.discord.util.RateLimitException;
 
 public class JokeBot extends Bot {
-	private static final String token = "MjUwMzQwMjI5NzA4MjUxMTM2.DL9RIw.0HcxTLw-K_VCEf2yiipaYYX-428";
 	private List<String> jokeCategories;
 	private JokeDatabase jokeDatabase;
 
-	public JokeBot(Scanner scanner, UserInput userInput) {
+	public JokeBot(String token, Scanner scanner, UserInput userInput) {
 		super(token, new JokeBotMenue(scanner, userInput, new JokeDatabase()));
 		JokeBotMenue jokeBotMenue= (JokeBotMenue) botMenue;
 		this.jokeDatabase = jokeBotMenue.getJokeDatabase();
