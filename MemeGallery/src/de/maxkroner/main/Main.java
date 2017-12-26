@@ -57,11 +57,13 @@ public class Main {
 		case 3:
 			new ScamBot(token, scanner, userInput);
 			break;
+		default:
+			System.out.println(
+					"The argument containted no valid bot name. Please provide either one argument with the token or a bot name in the first argument and the token in the second argument.");
+			System.exit(1);
 		}
 
-		System.out.println(
-				"The argument containted no valid bot name. Please provide either one argument with the token or a bot name in the first argument and the token in the second argument.");
-		System.exit(1);
+		
 	}
 
 	public static void exit() {
