@@ -22,8 +22,10 @@ public class Main {
 			break;
 		case 1:
 			startBotLaunchMenue(args[0]);
+			break;
 		case 2:
 			startBot(args[0], args[1]);
+			break;
 		}
 
 	}
