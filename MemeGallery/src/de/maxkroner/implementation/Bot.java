@@ -19,23 +19,41 @@ public abstract class Bot {
 
 	protected IDiscordClient client; // The instance of the discord client.
 
-	public Bot(String token, BotMenue botMenue2) {
+	public Bot(String token, BotMenue botMenue) {
 		this.client = createClient(token);
-		botMenue = botMenue2;
+		this.botMenue = botMenue;
 		EventDispatcher dispatcher = client.getDispatcher();
 		dispatcher.registerListener(this); // BaseBot implements IListener
 	}
 	
 	public void changeName(String name){
-		client.changeUsername(name);
+		try {
+			client.changeUsername(name);
+			System.out.println("The botname was changed to \"" + name + "\"");
+		} catch (Exception e) {
+			System.out.println("Changing botname failed.");
+			e.printStackTrace();
+		}
 	}
 	
 	public void changePlayingText(String playingText){
-		client.changePlayingText(playingText);
+		try {
+			client.changePlayingText(playingText);
+			System.out.println("The playingText was changed to \"" + playingText + "\"");
+		} catch (Exception e) {
+			System.out.println("Changing playingText failed.");
+			e.printStackTrace();
+		}
 	}
 	
 	public void changeAvatar(String url, String imageType){
-		client.changeAvatar(Image.forUrl(imageType, url));
+		try {
+			client.changeAvatar(Image.forUrl(imageType, url));
+			System.out.println("The avatar has been successfully changed.");
+		} catch (Exception e) {
+			System.out.println("Chaning avatar failed.");
+			e.printStackTrace();
+		}
 	}
 
 	public IDiscordClient getClient() {
