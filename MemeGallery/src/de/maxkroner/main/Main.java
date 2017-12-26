@@ -21,11 +21,9 @@ public class Main {
 			System.exit(1);
 			break;
 		case 1:
-			startBotLaunchMenue(args[0]);
-			break;
-		case 2:
-			startBot(args[0], args[1]);
-			break;
+			startBotLaunchMenue(args[0]); break;
+		default:
+			startBot(args[0], args[1]); break;
 		}
 
 	}
@@ -41,6 +39,10 @@ public class Main {
 		case "ScamBot":
 			new ScamBot(token, scanner, userInput);
 			break;
+		default:
+			System.out.println(
+					"The argument containted no valid bot name. Please provide either one argument with the token or a bot name in the first argument and the token in the second argument.");
+			System.exit(1);
 		}
 
 	}
@@ -59,13 +61,7 @@ public class Main {
 		case 3:
 			new ScamBot(token, scanner, userInput);
 			break;
-		default:
-			System.out.println(
-					"The argument containted no valid bot name. Please provide either one argument with the token or a bot name in the first argument and the token in the second argument.");
-			System.exit(1);
 		}
-
-		
 	}
 
 	public static void exit() {
