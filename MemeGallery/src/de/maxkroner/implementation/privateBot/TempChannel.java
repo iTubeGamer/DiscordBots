@@ -25,8 +25,8 @@ public class TempChannel {
 		return owner;
 	}
 
-	public void setEmptyMinuts(int emptyMinuts) {
-		this.emptyMinuts = emptyMinuts;
+	public void setEmptyMinutes(int emptyMinutes) {
+		this.emptyMinuts = emptyMinutes;
 	}
 
 	public int getTimeoutInMinutes() {

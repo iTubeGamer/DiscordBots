@@ -35,7 +35,7 @@ public class JokeBotMenue extends BotMenue {
 	public void startMenue(Bot bot) {
 		super.startMenue(bot);
 		
-				Integer auswahl = 0;
+				int auswahl = 0;
 				while (!(auswahl == 5 | auswahl == 4)) {
 
 					auswahl = userInput.getMultipleChoiceResult("What to do?", "manage database", "configure bot",
@@ -70,7 +70,7 @@ public class JokeBotMenue extends BotMenue {
 		List<String> categories = jokeDatabase.getJokeCategories();
 		if (!categories.isEmpty() && userInput.getYesNoResult("Select a category?")) {
 			String chosenCategory;
-			chosenCategory = (String) userInput.getMultipleChoiceResult("Which category?", categories);
+			chosenCategory = (String) userInput.getMultipleChoiceResult("Which category?", categories, Object::toString);
 
 			System.out.println("ok, printing all jokes of category " + chosenCategory);
 			jokeDatabase.printAllJokes(chosenCategory);

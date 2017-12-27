@@ -3,6 +3,8 @@ package de.maxkroner.ui;
 import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 public class UserInput {
 	private Scanner scanner;
@@ -91,21 +93,22 @@ public class UserInput {
 	}
 
 	/**
-	 * Prints the provided question and the possible list elements
+	 * Prints the provided question and the options to choose from
+	 * @param <T>
 	 * 
 	 * @param question
 	 *            the question to ask the user
-	 * @param answers
-	 *            the answers the user has to choose from
-	 * @return list element chosen by the user
+	 * @param options
+	 *            list of objects the user can choose from
+	 * @return chosen object
 	 */
-	public Object getMultipleChoiceResult(String question, List<?> choices) {
+	public <T> T getMultipleChoiceResult(String question, List<T> options, Function<T, String> toString) {
 		int result = 0;
 
-		while (result > choices.size() | result < 1) {
+		while (result > options.size() | result < 1) {
 			System.out.println(question);
-			for (int i = 1; i <= choices.size(); i++) {
-				System.out.println("(" + i + ") " + choices.get(i - 1).toString());
+			for (int i = 1; i <= options.size(); i++) {
+				System.out.println("(" + i + ") " + toString.apply(options.get(i - 1)));
 			}
 			
 			try{
@@ -117,7 +120,7 @@ public class UserInput {
 			
 		}
 
-		return choices.get(result - 1);
+		return options.get(result - 1);
 	}
 	
 	/**

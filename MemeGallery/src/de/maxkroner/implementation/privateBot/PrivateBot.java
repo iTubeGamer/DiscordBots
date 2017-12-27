@@ -51,7 +51,7 @@ public class PrivateBot extends Bot {
 	}
 
 	public PrivateBot(String token, Scanner scanner, UserInput userInput) {
-		super(token, new PrivateBotMenue(scanner, userInput));
+		super(token, new PrivateBotMenue(scanner, userInput, tempChannelsByGuild));
 	}
 
 	// ----- EVENT HANDLING ----- //

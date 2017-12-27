@@ -31,12 +31,6 @@ public class BotMenue implements IBotMenue {
 				bot.changePlayingText(userInput.getStringAnswer("enter new playing text:")); break;
 			case 3:
 				bot.changeAvatar(userInput.getStringAnswer("enter url to image:"), userInput.getStringAnswer("enter image type (jpeg, png, etc.):")); break;
-			case 4:
-				if(!userInput.getYesNoResult("Do you really want to exit?")){
-					auswahl = 1;
-				} else {
-					System.out.println("Good Bye.");
-				}
 			}
 		}
 		
