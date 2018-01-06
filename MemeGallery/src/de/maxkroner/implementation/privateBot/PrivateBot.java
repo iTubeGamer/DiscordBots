@@ -19,6 +19,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.pmw.tinylog.Logger;
+
 import de.maxkroner.implementation.Bot;
 import de.maxkroner.ui.PrivateBotMenue;
 import de.maxkroner.ui.UserInput;
@@ -68,19 +70,20 @@ public class PrivateBot extends Bot {
 		ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
 		CheckTempChannel<Runnable> checkEvent = new CheckTempChannel<Runnable>(tempChannelsByGuild, executor);
 		executor.scheduleAtFixedRate(checkEvent, 1, 1, TimeUnit.MINUTES);
-
+		Logger.info("TempChannels startet up and ready 2 go!");
 	}
 
 	@EventSubscriber
 	public void onVoiceChannelDelete(VoiceChannelDeleteEvent event) {
 		// get Channel that got deleted
-		IChannel deltedChannel = event.getVoiceChannel();
+		IChannel deletedChannel = event.getVoiceChannel();
 		// get TempChannelMap for the guild
 		TempChannelMap tempChannelMap = tempChannelsByGuild.get(event.getGuild());
 
-		if (tempChannelMap.tempChannelForChannelExists(deltedChannel)) {
+		if (tempChannelMap.tempChannelForChannelExists(deletedChannel)) {
+			Logger.info("The TempChannel \"{}\" was manually deleted, removing TempChannel from map!", deletedChannel.getName());
 			// get the TempChannel for the Channel
-			TempChannel tempChannelToRemove = tempChannelMap.getTempChannelForChannel(deltedChannel);
+			TempChannel tempChannelToRemove = tempChannelMap.getTempChannelForChannel(deletedChannel);
 			// remove TempChannel from the map
 			tempChannelMap.removeTempChannel(tempChannelToRemove);
 		}
@@ -92,8 +95,7 @@ public class PrivateBot extends Bot {
 		String message = event.getMessage().getContent();
 		IChannel channel = event.getMessage().getChannel();
 
-		// scan for messages in the following structure: command [-modifier
-		// [paramter ...] ...] ...
+		// scan for messages in the following structure: command [-modifier parameter ...] ...
 		String command = message;
 		String[] modifierStrings = new String[0];
 		List<Modifier> modifierList = new ArrayList<>();
@@ -113,13 +115,16 @@ public class PrivateBot extends Bot {
 
 		switch (command) {
 		case "!c":
-			parseChannelCommand(event, modifierList);
+			parseChannelCommand(modifierList, event);
 			break;
 		case "!kick":
-			parseKickCommand(modifierList, channel);
+			parseKickCommand(modifierList, event);
+			break;
+		case "!ban":
+			parseBanCommand(modifierList, event);
 			break;
 		case "!cc":
-			parseChannelClearCommand(event, modifierList);
+			parseChannelClearCommand(modifierList, event);
 			break;
 		}
 	}
@@ -142,13 +147,15 @@ public class PrivateBot extends Bot {
 	 **/
 
 	// ----- MESSAGE PARSING ----- //
-	private void parseChannelClearCommand(MessageReceivedEvent event, List<Modifier> modifierList) {
+	private void parseChannelClearCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		IGuild guild = event.getGuild();
 		IUser author = event.getAuthor();
 		IChannel channel = event.getChannel();
 
 		// if user has no channels we're done
 		if (getUserChannelCountOnGuild(author, guild) == 0) {
+			Logger.info("User {} had no tempChannels", event.getAuthor());
 			sendMessage(event.getAuthor() + ", you have no temporary channels at the moment!", channel, false);
 			return;
 		}
@@ -166,17 +173,19 @@ public class PrivateBot extends Bot {
 			}
 		}
 		
-		
 		// delete the channels
 		boolean sendMessage = false;
 		for (Iterator<TempChannel> iterator = userChannels.iterator(); iterator.hasNext();) {
 			IVoiceChannel userChannel = iterator.next().getChannel();
 			if (userChannel.getConnectedUsers().isEmpty()) {
+				Logger.info("Deleting empty channel \"{}\"", userChannel.getName());
 				userChannel.delete();
 			} else {
 				if (forceDelete){
+					Logger.info("Force-Deleting channel \"{}\"", userChannel.getName());
 					userChannel.delete();
 				} else {
+					Logger.info("Channel \"{}\" isn't empty", userChannel.getName());
 					sendMessage = true;
 				}
 			}
@@ -188,11 +197,18 @@ public class PrivateBot extends Bot {
 		
 	}
 
-	private void parseKickCommand(List<Modifier> modifierList, IChannel channel) {
-		sendMessage("Kick available soon!", channel, false);
+	private void parseKickCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
+		sendMessage("Kick available soon!", event.getChannel(), false);
+	}
+	
+	private void parseBanCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
+		sendMessage("Ban available soon!", event.getChannel(), false);
 	}
 
-	private void parseChannelCommand(MessageReceivedEvent event, List<Modifier> modifierList) {
+	private void parseChannelCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		IChannel channel = event.getChannel();
 		IUser author = event.getAuthor();
 		IGuild guild = event.getGuild();
@@ -416,10 +432,11 @@ public class PrivateBot extends Bot {
 
 		// create the new channel
 		IVoiceChannel channel = guild.createVoiceChannel(name);
+		Logger.info("Created channel: \"{}\"", channel.getName());
 
 		// put channel to temp category
 		moveChannelToTempCategory(guild, channel);
-
+		
 		// set user limit
 		channel.changeUserLimit(limit);
 
@@ -441,12 +458,12 @@ public class PrivateBot extends Bot {
 	}
 
 	private void movePlayersToChannel(List<IUser> playersToMove, IVoiceChannel channel) {
-
 		for (IUser user : playersToMove) {
 			// only move players who are in voice channels already
 			if (user.getVoiceStateForGuild(channel.getGuild()).getChannel() != null)
 				user.moveToVoiceChannel(channel);
 		}
+		Logger.info("Moved players: {}", playersToMove.stream().map(n -> n.getName()).collect(Collectors.joining(", ")));
 	}
 
 	private void setChannelPermissions(IUser owner, List<IUser> allowedUsers, IGuild guild, IVoiceChannel channel) {

@@ -18,7 +18,6 @@ public class CheckTempChannel<E> implements Runnable {
 	
 	@Override
 	public void run() {
-		Logger.info("checking timeout of TempChannels");
 		//iterate over the tempChannelMaps per Guild
 		for(TempChannelMap tempChannelMap : channelMap.values()){
 			//iterate over all the tempChannels of the Guild (use Iterator.hasNext()) as Elements get deleted while iterating)
