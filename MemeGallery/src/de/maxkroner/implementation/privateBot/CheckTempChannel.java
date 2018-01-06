@@ -18,32 +18,36 @@ public class CheckTempChannel<E> implements Runnable {
 	
 	@Override
 	public void run() {
-		//iterate over the tempChannelMaps per Guild
-		for(TempChannelMap tempChannelMap : channelMap.values()){
-			//iterate over all the tempChannels of the Guild (use Iterator.hasNext()) as Elements get deleted while iterating)
-			for(Iterator<TempChannel> iterator = tempChannelMap.getAllTempChannel().iterator(); iterator.hasNext();){
-				TempChannel tempChannel = iterator.next();
-				//if Channel still exists
-				if(!tempChannel.getChannel().isDeleted()){
-					if (tempChannel.getChannel().getConnectedUsers().isEmpty()){
-						tempChannel.setEmptyMinutes(tempChannel.getEmptyMinuts() + 1);
-						Logger.info("Channel \"{}\" is empty, increased emptyMinutes to {}", tempChannel.getChannel().getName(), tempChannel.getEmptyMinuts());
-						if(tempChannel.getEmptyMinuts() >= tempChannel.getTimeoutInMinutes()){
-							Logger.info("Channel \"{}\" reached it's timeout, deleting channel now", tempChannel.getChannel().getName());
-							tempChannel.getChannel().delete();
-							tempChannelMap.removeTempChannel(tempChannel);
+		try{
+			//iterate over the tempChannelMaps per Guild
+			for(TempChannelMap tempChannelMap : channelMap.values()){
+				//iterate over all the tempChannels of the Guild (use Iterator.hasNext()) as Elements get deleted while iterating)
+				for(Iterator<TempChannel> iterator = tempChannelMap.getAllTempChannel().iterator(); iterator.hasNext();){
+					TempChannel tempChannel = iterator.next();
+					//if Channel still exists
+					if(!tempChannel.getChannel().isDeleted()){
+						if (tempChannel.getChannel().getConnectedUsers().isEmpty()){
+							tempChannel.setEmptyMinutes(tempChannel.getEmptyMinuts() + 1);
+							Logger.info("Channel \"{}\" is empty, increased emptyMinutes to {}", tempChannel.getChannel().getName(), tempChannel.getEmptyMinuts());
+							if(tempChannel.getEmptyMinuts() > tempChannel.getTimeoutInMinutes()){
+								Logger.info("Channel \"{}\" exceeded it's timeout of {} minutes, deleting channel now", tempChannel.getChannel().getName(), tempChannel.getTimeoutInMinutes());
+								tempChannel.getChannel().delete();
+								iterator.remove();
+							}
+						} else {
+							tempChannel.setEmptyMinutes(0);
+							Logger.info("Channel \"{}\" wasn't empty, timeout set to 0", tempChannel.getChannel().getName());
 						}
+					//if Channel was already deleted
 					} else {
-						tempChannel.setEmptyMinutes(0);
-						Logger.info("Channel \"{}\" wasn't empty, timeout set to 0", tempChannel.getChannel().getName());
-					}
-				//if Channel was already deleted
-				} else {
-					tempChannelMap.removeTempChannel(tempChannel);
-					Logger.warn("Channel \"{}\" in ChannelMap didn't exist anymore, removed it now!", tempChannel.getChannel().getName());
+						tempChannelMap.removeTempChannel(tempChannel);
+						Logger.warn("Channel \"{}\" in ChannelMap didn't exist anymore, removed it now!", tempChannel.getChannel().getName());
+					}		
 				}
 				
 			}
+		} catch (Exception e){
+			Logger.error(e);
 		}
 	}
 

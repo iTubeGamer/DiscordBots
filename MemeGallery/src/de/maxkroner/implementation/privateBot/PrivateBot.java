@@ -67,27 +67,27 @@ public class PrivateBot extends Bot {
 			TempChannelMap tempChannelMap = new TempChannelMap();
 			tempChannelsByGuild.put(guild, tempChannelMap);
 		}
-		ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+		ScheduledExecutorService executor = Executors.newScheduledThreadPool(5);
 		CheckTempChannel<Runnable> checkEvent = new CheckTempChannel<Runnable>(tempChannelsByGuild, executor);
 		executor.scheduleAtFixedRate(checkEvent, 1, 1, TimeUnit.MINUTES);
 		Logger.info("TempChannels startet up and ready 2 go!");
 	}
 
 	@EventSubscriber
-	public void onVoiceChannelDelete(VoiceChannelDeleteEvent event) {
+	public void onVoiceChannelDelete(VoiceChannelDeleteEvent event) {	
 		// get Channel that got deleted
 		IChannel deletedChannel = event.getVoiceChannel();
-		// get TempChannelMap for the guild
+		
+		// get TempChannel for the Channel
 		TempChannelMap tempChannelMap = tempChannelsByGuild.get(event.getGuild());
-
-		if (tempChannelMap.tempChannelForChannelExists(deletedChannel)) {
-			Logger.info("The TempChannel \"{}\" was manually deleted, removing TempChannel from map!", deletedChannel.getName());
-			// get the TempChannel for the Channel
-			TempChannel tempChannelToRemove = tempChannelMap.getTempChannelForChannel(deletedChannel);
-			// remove TempChannel from the map
+		TempChannel tempChannelToRemove = tempChannelMap.getTempChannelForChannel(deletedChannel);
+		
+		//delete if TempChannel exists
+		if (tempChannelToRemove != null) {
+			Logger.info("Removing TempChannel \"{}\" from map!", deletedChannel.getName());
+		
 			tempChannelMap.removeTempChannel(tempChannelToRemove);
 		}
-
 	}
 
 	@EventSubscriber
@@ -284,7 +284,7 @@ public class PrivateBot extends Bot {
 				if (modifier.getParameterList().length >= 1) {
 					int given_timeout = Integer.parseInt(modifier.getParameterList()[0]);
 					if (given_timeout >= 1 && given_timeout <= 180) {
-						timeout = given_timeout + 1;
+						timeout = given_timeout;
 					} else {
 						sendMessage(
 								"Please use the timout-modifier (-t) only with a parameter between 1-180 minutes (f.e. !c -t 5)",
