@@ -26,21 +26,21 @@ public class CheckTempChannel<E> implements Runnable {
 				//if Channel still exists
 				if(!tempChannel.getChannel().isDeleted()){
 					if (tempChannel.getChannel().getConnectedUsers().isEmpty()){
-						Logger.info("Channel \"{}\" is empty, increasing emptyMinutes to", tempChannel.getChannel().getName(), tempChannel.getEmptyMinuts());
 						tempChannel.setEmptyMinutes(tempChannel.getEmptyMinuts() + 1);
+						Logger.info("Channel \"{}\" is empty, increased emptyMinutes to {}", tempChannel.getChannel().getName(), tempChannel.getEmptyMinuts());
 						if(tempChannel.getEmptyMinuts() >= tempChannel.getTimeoutInMinutes()){
 							Logger.info("Channel \"{}\" reached it's timeout, deleting channel now", tempChannel.getChannel().getName());
 							tempChannel.getChannel().delete();
 							tempChannelMap.removeTempChannel(tempChannel);
 						}
 					} else {
-						Logger.info("Channel \"{}\" wasn't empty, setting timeout to 0", tempChannel.getChannel().getName());
 						tempChannel.setEmptyMinutes(0);
+						Logger.info("Channel \"{}\" wasn't empty, timeout set to 0", tempChannel.getChannel().getName());
 					}
 				//if Channel was already deleted
 				} else {
-					Logger.warn("Channel \"{}\" in ChannelMap didn't exist anymore!", tempChannel.getChannel().getName());
 					tempChannelMap.removeTempChannel(tempChannel);
+					Logger.warn("Channel \"{}\" in ChannelMap didn't exist anymore, removed it now!", tempChannel.getChannel().getName());
 				}
 				
 			}

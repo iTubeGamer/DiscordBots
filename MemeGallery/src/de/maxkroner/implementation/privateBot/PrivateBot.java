@@ -284,7 +284,7 @@ public class PrivateBot extends Bot {
 				if (modifier.getParameterList().length >= 1) {
 					int given_timeout = Integer.parseInt(modifier.getParameterList()[0]);
 					if (given_timeout >= 1 && given_timeout <= 180) {
-						timeout = given_timeout;
+						timeout = given_timeout + 1;
 					} else {
 						sendMessage(
 								"Please use the timout-modifier (-t) only with a parameter between 1-180 minutes (f.e. !c -t 5)",
@@ -463,7 +463,7 @@ public class PrivateBot extends Bot {
 			if (user.getVoiceStateForGuild(channel.getGuild()).getChannel() != null)
 				user.moveToVoiceChannel(channel);
 		}
-		Logger.info("Moved players: {}", playersToMove.stream().map(n -> n.getName()).collect(Collectors.joining(", ")));
+		if (!playersToMove.isEmpty()){Logger.info("Moved players: {}", playersToMove.stream().map(n -> n.getName()).collect(Collectors.joining(", ")));};
 	}
 
 	private void setChannelPermissions(IUser owner, List<IUser> allowedUsers, IGuild guild, IVoiceChannel channel) {
