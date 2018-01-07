@@ -1,7 +1,9 @@
 package de.maxkroner.implementation.privateBot;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.pmw.tinylog.Logger;
@@ -21,9 +23,9 @@ public class CheckTempChannel<E> implements Runnable {
 		try{
 			//iterate over the tempChannelMaps per Guild
 			for(TempChannelMap tempChannelMap : channelMap.values()){
-				//iterate over all the tempChannels of the Guild (use Iterator.hasNext()) as Elements get deleted while iterating)
-				for(Iterator<TempChannel> iterator = tempChannelMap.getAllTempChannel().iterator(); iterator.hasNext();){
-					TempChannel tempChannel = iterator.next();
+				//iterate over all the tempChannels of the Guild (collect all TempChannels and delete them later)
+				List<TempChannel> tempChannelToDelete = new ArrayList<TempChannel>();
+				for(TempChannel tempChannel : tempChannelMap.getAllTempChannel()){
 					//if Channel still exists
 					if(!tempChannel.getChannel().isDeleted()){
 						if (tempChannel.getChannel().getConnectedUsers().isEmpty()){
@@ -31,8 +33,7 @@ public class CheckTempChannel<E> implements Runnable {
 							Logger.info("Channel \"{}\" is empty, increased emptyMinutes to {}", tempChannel.getChannel().getName(), tempChannel.getEmptyMinuts());
 							if(tempChannel.getEmptyMinuts() > tempChannel.getTimeoutInMinutes()){
 								Logger.info("Channel \"{}\" exceeded it's timeout of {} minutes, deleting channel now", tempChannel.getChannel().getName(), tempChannel.getTimeoutInMinutes());
-								tempChannel.getChannel().delete();
-								iterator.remove();
+								tempChannelToDelete.add(tempChannel);
 							}
 						} else {
 							tempChannel.setEmptyMinutes(0);
@@ -40,11 +41,15 @@ public class CheckTempChannel<E> implements Runnable {
 						}
 					//if Channel was already deleted
 					} else {
-						tempChannelMap.removeTempChannel(tempChannel);
+						tempChannelToDelete.add(tempChannel);
 						Logger.warn("Channel \"{}\" in ChannelMap didn't exist anymore, removed it now!", tempChannel.getChannel().getName());
 					}		
 				}
 				
+				for(TempChannel tempChannel : tempChannelToDelete){
+					//delete the VoiceChannel only, the TempChannel will be removed in onVoiceChannelDeleteEvent
+					tempChannel.getChannel().delete();
+				}
 			}
 		} catch (Exception e){
 			Logger.error(e);

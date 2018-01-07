@@ -28,6 +28,7 @@ import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelDeleteEvent;
+import sx.blah.discord.handle.impl.obj.ReactionEmoji;
 import sx.blah.discord.handle.impl.obj.User;
 import sx.blah.discord.handle.obj.ICategory;
 import sx.blah.discord.handle.obj.IChannel;
@@ -147,66 +148,6 @@ public class PrivateBot extends Bot {
 	 **/
 
 	// ----- MESSAGE PARSING ----- //
-	private void parseChannelClearCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
-		IGuild guild = event.getGuild();
-		IUser author = event.getAuthor();
-		IChannel channel = event.getChannel();
-
-		// if user has no channels we're done
-		if (getUserChannelCountOnGuild(author, guild) == 0) {
-			Logger.info("User {} had no tempChannels", event.getAuthor());
-			sendMessage(event.getAuthor() + ", you have no temporary channels at the moment!", channel, false);
-			return;
-		}
-
-		// else, get all user channels
-		Collection<TempChannel> userChannels = getUserChannelsOnGuild(author, guild);
-
-		// parse modifier -f
-		boolean forceDelete = false;
-		for (Modifier modifier : modifierList) {
-			switch (modifier.getModifierName()) {
-			case "f":
-				forceDelete = true;
-				break;
-			}
-		}
-		
-		// delete the channels
-		boolean sendMessage = false;
-		for (Iterator<TempChannel> iterator = userChannels.iterator(); iterator.hasNext();) {
-			IVoiceChannel userChannel = iterator.next().getChannel();
-			if (userChannel.getConnectedUsers().isEmpty()) {
-				Logger.info("Deleting empty channel \"{}\"", userChannel.getName());
-				userChannel.delete();
-			} else {
-				if (forceDelete){
-					Logger.info("Force-Deleting channel \"{}\"", userChannel.getName());
-					userChannel.delete();
-				} else {
-					Logger.info("Channel \"{}\" isn't empty", userChannel.getName());
-					sendMessage = true;
-				}
-			}
-		}
-		
-		if (sendMessage){
-			sendMessage("Some of your channels arent empty. Use \"!cc -f\" to force the deletion anyway.", channel, false);
-		}
-		
-	}
-
-	private void parseKickCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
-		sendMessage("Kick available soon!", event.getChannel(), false);
-	}
-	
-	private void parseBanCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
-		sendMessage("Ban available soon!", event.getChannel(), false);
-	}
-
 	private void parseChannelCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		IChannel channel = event.getChannel();
@@ -215,7 +156,7 @@ public class PrivateBot extends Bot {
 
 		// check if User is in voice channel of the guild
 		if (author.getVoiceStateForGuild(guild).getChannel() == null) {
-			sendMessage(author.getName() + " please join a voice channel before activating a channel command.", channel,
+			sendMessage(author + " please join a voice channel before activating a channel command.", channel,
 					false);
 			return;
 		}
@@ -223,10 +164,11 @@ public class PrivateBot extends Bot {
 		// check if User-Channel-Count-Limit is reached
 		if (getUserChannelCountOnGuild(author, guild) >= USER_CHANNEL_LIMIT) {
 			sendMessage(
-					"Sorry " + author.getName() + ", but you reached the personal channel limit of "
+					"Sorry " + author + ", but you reached the personal channel limit of "
 							+ USER_CHANNEL_LIMIT + ". Use !cc to delete all of your empty temporary channels. "
 							+ "With the modifier -f you can force to delte all channels, even those who aren't empty!",
 					channel, false);
+			Logger.info("User \"{}\" reached his channel limit. Channel wasn't created.", author.getName());
 			return;
 		}
 
@@ -308,6 +250,66 @@ public class PrivateBot extends Bot {
 
 		createChannel(event, name, allowedUsers, movePlayers, limit, timeout);
 
+	}
+	
+	private void parseChannelClearCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
+		IGuild guild = event.getGuild();
+		IUser author = event.getAuthor();
+		IChannel channel = event.getChannel();
+
+		// if user has no channels we're done
+		if (getUserChannelCountOnGuild(author, guild) == 0) {
+			Logger.info("User {} had no tempChannels", event.getAuthor());
+			sendMessage(event.getAuthor() + ", you have no temporary channels at the moment!", channel, false);
+			return;
+		}
+
+		// else, get all user channels
+		Collection<TempChannel> userChannels = getUserChannelsOnGuild(author, guild);
+
+		// parse modifier -f
+		boolean forceDelete = false;
+		for (Modifier modifier : modifierList) {
+			switch (modifier.getModifierName()) {
+			case "f":
+				forceDelete = true;
+				break;
+			}
+		}
+		
+		// delete the channels
+		boolean sendMessage = false;
+		for (Iterator<TempChannel> iterator = userChannels.iterator(); iterator.hasNext();) {
+			IVoiceChannel userChannel = iterator.next().getChannel();
+			if (userChannel.getConnectedUsers().isEmpty()) {
+				Logger.info("Deleting empty channel \"{}\"", userChannel.getName());
+				userChannel.delete();
+			} else {
+				if (forceDelete){
+					Logger.info("Force-Deleting channel \"{}\"", userChannel.getName());
+					userChannel.delete();
+				} else {
+					Logger.info("Channel \"{}\" isn't empty", userChannel.getName());
+					sendMessage = true;
+				}
+			}
+		}
+		
+		if (sendMessage){
+			sendMessage("Some of your channels arent empty. Use \"!cc -f\" to force the deletion anyway.", channel, false);
+		}
+		
+	}
+
+	private void parseKickCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
+		sendMessage("Kick available soon!", event.getChannel(), false);
+	}
+	
+	private void parseBanCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
+		sendMessage("Ban available soon!", event.getChannel(), false);
 	}
 
 	private List<IUser> parseMoveModifier(List<Modifier> modifierList, Modifier modifier,
@@ -452,7 +454,7 @@ public class PrivateBot extends Bot {
 		
 		MessageBuilder mb = new MessageBuilder(getClient()).withChannel(event.getChannel());
 		mb.withContent("Yo " + owner + ", I created the channel `" + name + "` 4 u m8 ");
-		mb.appendContent(getRandomChannelEmoji(guild).toString());
+		mb.appendContent(getRandomChannelEmoji(guild));
 		mb.build();
 
 	}
@@ -463,7 +465,7 @@ public class PrivateBot extends Bot {
 			if (user.getVoiceStateForGuild(channel.getGuild()).getChannel() == author.getVoiceStateForGuild(channel.getGuild()).getChannel()){
 				user.moveToVoiceChannel(channel);
 			} else {
-				sendPrivateMessage(author, "The user " + user.getName() + " wasn't in the same channel as you and therefore couldn't be moved.");
+				sendPrivateMessage(author, "The user " + user + " wasn't in the same channel as you and therefore couldn't be moved.");
 			}
 				
 		}
@@ -549,10 +551,14 @@ public class PrivateBot extends Bot {
 		return false;
 	}
 
-	private IEmoji getRandomChannelEmoji(IGuild guild){
+	private String getRandomChannelEmoji(IGuild guild){
 		List<IEmoji> channelEmojis = guild.getEmojis();
-		int index = ThreadLocalRandom.current().nextInt(0, channelEmojis.size());
-		return channelEmojis.get(index);
+		if(!channelEmojis.isEmpty()){
+			int index = ThreadLocalRandom.current().nextInt(0, channelEmojis.size());
+			return channelEmojis.get(index).toString();
+		}
+		
+		return "";
 		
 	}
 }
