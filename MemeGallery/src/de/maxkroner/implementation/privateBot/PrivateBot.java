@@ -393,6 +393,7 @@ public class PrivateBot extends Bot {
 		IUser user;
 		MessageTokenizer mt = new MessageTokenizer(getClient(), parameter);
 		if (mt.hasNextMention()) {
+			@SuppressWarnings({ "rawtypes", "unchecked" })
 			MentionToken<IDiscordObject> nextMention = mt.nextMention();
 			if (nextMention.getMentionObject().getClass() == User.class) {
 				user = (IUser) nextMention.getMentionObject();

@@ -6,7 +6,7 @@ public class ShutdownHook extends Thread{
 	
 	@Override
 	public void run() {
+		Logger.info("Shutdown Hook started");
 		Main.bot.disconnect();
-		Logger.info("|||---SHUTTING DOWN---|||");
 	}
 }

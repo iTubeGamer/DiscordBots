@@ -64,8 +64,8 @@ public abstract class Bot {
 	
 	public void disconnect(){
 		try {
-			client.logout();
-			Logger.info("Logging client out");
+			Logger.info("|||---SHUTTING DOWN---|||");
+			client.logout();	
 		} catch (DiscordException e) {
 			Logger.error(e);
 		}
