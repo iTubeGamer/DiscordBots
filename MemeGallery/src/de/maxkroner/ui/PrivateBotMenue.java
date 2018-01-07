@@ -5,12 +5,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Set;
 
 import de.maxkroner.implementation.Bot;
 import de.maxkroner.implementation.privateBot.TempChannel;
 import de.maxkroner.implementation.privateBot.TempChannelMap;
-import de.maxkroner.main.Main;
 import io.bretty.console.table.Alignment;
 import io.bretty.console.table.ColumnFormatter;
 import io.bretty.console.table.Precision;

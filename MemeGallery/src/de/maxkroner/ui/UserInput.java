@@ -3,7 +3,6 @@ package de.maxkroner.ui;
 import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 public class UserInput {

@@ -3,7 +3,6 @@ package de.maxkroner.implementation;
 import org.pmw.tinylog.Logger;
 
 import de.maxkroner.ui.BotMenue;
-import de.maxkroner.ui.IBotMenue;
 import sx.blah.discord.api.ClientBuilder;
 import sx.blah.discord.api.IDiscordClient;
 import sx.blah.discord.api.events.EventDispatcher;

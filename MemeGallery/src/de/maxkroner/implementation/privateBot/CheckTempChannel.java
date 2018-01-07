@@ -1,8 +1,5 @@
 package de.maxkroner.implementation.privateBot;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,7 +7,6 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import org.pmw.tinylog.Logger;
 
-import de.maxkroner.to.TempChannelTO;
 import sx.blah.discord.handle.obj.IGuild;
 
 public class CheckTempChannel<E> implements Runnable {

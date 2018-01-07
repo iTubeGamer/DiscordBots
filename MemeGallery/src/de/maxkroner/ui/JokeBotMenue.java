@@ -2,13 +2,11 @@ package de.maxkroner.ui;
 
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import de.maxkroner.database.JokeDatabase;
 import de.maxkroner.enums.FileFormat;
 import de.maxkroner.implementation.Bot;
 import de.maxkroner.implementation.JokeBot;
-import de.maxkroner.main.Main;
 import de.maxkroner.reader.FlachwitzUrlReader;
 import de.maxkroner.reader.JokeFileReader;
 
