@@ -52,6 +52,8 @@ public class PrivateBotMenue extends BotMenue {
 			case 4:
 				if (userInput.getYesNoResult("Are you sure?")) {
 					bot.disconnect();
+				} else {
+					auswahl = 1;
 				}
 			}
 		}
