@@ -34,7 +34,7 @@ public class TempChannelMap implements Serializable {
 		userTempChannelMap.get(tempChannel.getOwner()).remove(tempChannel);
 	}
 	
-	public boolean tempChannelForChannelExists(IChannel channel){
+	public boolean isTempChannelForChannelExistentInMap(IChannel channel){
 		return channelTempChannelMap.containsKey(channel);
 	}
 	

@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
@@ -77,7 +78,10 @@ public class PrivateBot extends Bot {
 
 		// import previous TempChannels from file
 		readTempChannelsFromFile();
-
+		
+		//delete Channel which aren't existent in map
+		removeUnkownChannels();
+		
 		// start Channel-Timout Scheduler
 		ScheduledExecutorService executor = Executors.newScheduledThreadPool(5);
 		CheckTempChannel<Runnable> checkEvent = new CheckTempChannel<Runnable>(tempChannelsByGuild, executor);
@@ -426,7 +430,7 @@ public class PrivateBot extends Bot {
 		Logger.info("Created channel: \"{}\"", channel.getName());
 
 		// put channel to temp category
-		moveChannelToTempCategory(guild, channel);
+		channel.changeCategory(getTempCategoryForGuild(guild));
 
 		// set user limit
 		channel.changeUserLimit(limit);
@@ -477,7 +481,7 @@ public class PrivateBot extends Bot {
 		}
 	}
 
-	private void moveChannelToTempCategory(IGuild guild, IVoiceChannel channel) {
+	private ICategory getTempCategoryForGuild(IGuild guild) {
 		ICategory targetCategory = null;
 
 		List<ICategory> temp_categories = guild.getCategoriesByName("Temporary Channel");
@@ -487,7 +491,8 @@ public class PrivateBot extends Bot {
 			targetCategory = guild.createCategory("Temporary Channel");
 		}
 
-		channel.changeCategory(targetCategory);
+		
+		return targetCategory;
 	}
 
 	// ----- HELPER METHODS ----- //
@@ -589,4 +594,21 @@ public class PrivateBot extends Bot {
 		}
 
 	}
+	
+	private void removeUnkownChannels(){
+		//get TempCategory for each guild and remove VoiceChannels in the category which aren't in the TempChannelMap
+		Set<IGuild> guilds = tempChannelsByGuild.keySet();		
+		for (IGuild guild : guilds) {
+			ICategory tempCategory = getTempCategoryForGuild(guild);
+			if(tempCategory != null){
+				for(IVoiceChannel channel : tempCategory.getVoiceChannels()){
+					if(!tempChannelsByGuild.get(guild).isTempChannelForChannelExistentInMap(channel)){
+						channel.delete();
+					}
+				}
+			}
+		}
+		
+	}
+	
 }
