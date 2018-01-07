@@ -604,12 +604,23 @@ public class PrivateBot extends Bot {
 		// get TempCategory for each guild and remove VoiceChannels in the category which aren't in the TempChannelMap
 		Set<IGuild> guilds = tempChannelsByGuild.keySet();
 		for (IGuild guild : guilds) {
+			boolean textChannelInTempCategory = false;
 			ICategory tempCategory = getTempCategoryForGuild(guild);
 			if (tempCategory != null) {
 				for (IVoiceChannel channel : tempCategory.getVoiceChannels()) {
 					if (!tempChannelsByGuild.get(guild).isTempChannelForChannelExistentInMap(channel)) {
-						channel.delete();
+						TempChannel tempChannel = new TempChannel(channel, getClient().getOurUser(), 0);
+						tempChannelsByGuild.get(guild).addTempChannel(tempChannel);
+						Logger.info("Creating 5min timeout TempChannel for unkown channel: \"{}\" in guild {}", channel.getName(), guild.getName());
 					}
+				}
+				for (IChannel channel : tempCategory.getChannels()){
+					textChannelInTempCategory = true;
+					channel.delete();
+					Logger.info("Delted text channel \"{}\" in TempChannel category");
+				}
+				if(textChannelInTempCategory){
+					sendMessage("Who the hell created TextChannel in the TempChannel category? Get your life fixed! I had to clean up this mess for you...", guild.getDefaultChannel(), false);
 				}
 			}
 		}
