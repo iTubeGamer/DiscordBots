@@ -1,5 +1,7 @@
 package de.maxkroner.implementation;
 
+import org.pmw.tinylog.Logger;
+
 import de.maxkroner.ui.BotMenue;
 import de.maxkroner.ui.IBotMenue;
 import sx.blah.discord.api.ClientBuilder;
@@ -21,6 +23,7 @@ public abstract class Bot {
 	private IDiscordClient client; // The instance of the discord client.
 
 	public Bot(String token, BotMenue botMenue) {
+		Logger.info("|||---STARTING UP ---|||");
 		this.client = createClient(token);
 		this.botMenue = botMenue;
 		EventDispatcher dispatcher = client.getDispatcher();
@@ -31,9 +34,10 @@ public abstract class Bot {
 		try {
 			client.changeUsername(name);
 			System.out.println("The botname was changed to \"" + name + "\"");
+			Logger.info("The botname was changed to \"" + name + "\"");
 		} catch (Exception e) {
 			System.out.println("Changing botname failed.");
-			e.printStackTrace();
+			Logger.error(e);
 		}
 	}
 	
@@ -41,9 +45,10 @@ public abstract class Bot {
 		try {
 			client.changePlayingText(playingText);
 			System.out.println("The playingText was changed to \"" + playingText + "\"");
+			Logger.info("The playingText was changed to \"" + playingText + "\"");
 		} catch (Exception e) {
 			System.out.println("Changing playingText failed.");
-			e.printStackTrace();
+			Logger.error(e);
 		}
 	}
 	
@@ -51,9 +56,10 @@ public abstract class Bot {
 		try {
 			client.changeAvatar(Image.forUrl(imageType, url));
 			System.out.println("The avatar has been successfully changed.");
+			Logger.info("The avatar has been successfully changed.");
 		} catch (Exception e) {
 			System.out.println("Chaning avatar failed.");
-			e.printStackTrace();
+			Logger.error(e);
 		}
 	}
 
@@ -87,19 +93,22 @@ public abstract class Bot {
 			}
 		}.start();
 		System.out.println("Logged in as " + bot_name);
+		Logger.info("Logged in as " + bot_name);
 	}
 
 	@EventSubscriber
 	protected void logout(DisconnectedEvent event) {
 		System.out.println("Logged out for reason " + event.getReason() + "!");
+		Logger.info("Logged out for reason " + event.getReason() + "!");
 	}
 	
 	public void disconnect(){
 		try {
 			client.logout();
+			Logger.info("|||---SHUTTING DOWN---|||");
 			System.exit(0);
 		} catch (DiscordException e) {
-			e.printStackTrace();
+			Logger.error(e);
 		}
 	}
 
@@ -110,7 +119,7 @@ public abstract class Bot {
 			return clientBuilder.login(); // Creates the client instance and
 											// logs the client in
 		} catch (DiscordException e) {
-			e.printStackTrace();
+			Logger.error(e);
 			return null;
 		}
 	}

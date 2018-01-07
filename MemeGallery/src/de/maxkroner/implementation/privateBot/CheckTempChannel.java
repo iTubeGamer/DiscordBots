@@ -65,7 +65,7 @@ public class CheckTempChannel<E> implements Runnable {
 	/**
 	 * saves all current TempChannels to a file
 	 */
-	private void saveTempChannel() {
+	public void saveTempChannel() {
 		//create an ArrayList with Transfer Objects (TOs) for each TempChannel
 		ArrayList<TempChannelTO> tempChannelTOs = new ArrayList<>();
 		for (TempChannelMap tempChannelMap : tempChannelsByGuild.values()) {

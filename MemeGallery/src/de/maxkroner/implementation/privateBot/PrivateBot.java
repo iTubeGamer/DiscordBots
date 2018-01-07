@@ -32,6 +32,7 @@ import de.maxkroner.ui.UserInput;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
+import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelCreateEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelDeleteEvent;
 import sx.blah.discord.handle.impl.obj.ReactionEmoji;
 import sx.blah.discord.handle.impl.obj.User;
@@ -53,13 +54,19 @@ public class PrivateBot extends Bot {
 	private static final EnumSet<Permissions> voice_connect = EnumSet.of(Permissions.VOICE_CONNECT);
 	private static final EnumSet<Permissions> empty = EnumSet.noneOf(Permissions.class);
 	private static final int USER_CHANNEL_LIMIT = 3;
-
+	private CheckTempChannel<Runnable> checkEvent;
 	static {
 		fileToArray("channelnames.txt", channelNames, 0);
 	}
 
 	public PrivateBot(String token, Scanner scanner, UserInput userInput) {
 		super(token, new PrivateBotMenue(scanner, userInput, tempChannelsByGuild));
+	}
+	
+	@Override
+	public void disconnect(){
+		checkEvent.saveTempChannel();
+		super.disconnect();
 	}
 
 	// ----- EVENT HANDLING ----- //
@@ -78,13 +85,13 @@ public class PrivateBot extends Bot {
 
 		// import previous TempChannels from file
 		readTempChannelsFromFile();
-		
-		//delete Channel which aren't existent in map
+
+		// delete Channel which aren't existent in map
 		removeUnkownChannels();
-		
+
 		// start Channel-Timout Scheduler
-		ScheduledExecutorService executor = Executors.newScheduledThreadPool(5);
-		CheckTempChannel<Runnable> checkEvent = new CheckTempChannel<Runnable>(tempChannelsByGuild, executor);
+		ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+		checkEvent = new CheckTempChannel<Runnable>(tempChannelsByGuild, executor);
 		executor.scheduleAtFixedRate(checkEvent, 1, 1, TimeUnit.MINUTES);
 		Logger.info("TempChannels startet up and ready 2 go!");
 	}
@@ -109,7 +116,6 @@ public class PrivateBot extends Bot {
 	@EventSubscriber
 	public void onMessageReceivedEvent(MessageReceivedEvent event) {
 		String message = event.getMessage().getContent();
-		IChannel channel = event.getMessage().getChannel();
 
 		// scan for messages in the following structure: command [-modifier parameter ...] ...
 		String command = message;
@@ -491,7 +497,6 @@ public class PrivateBot extends Bot {
 			targetCategory = guild.createCategory("Temporary Channel");
 		}
 
-		
 		return targetCategory;
 	}
 
@@ -509,7 +514,7 @@ public class PrivateBot extends Bot {
 				}
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			Logger.error(e);
 		}
 
 	}
@@ -574,9 +579,9 @@ public class PrivateBot extends Bot {
 					IVoiceChannel voiceChannel = getClient().getVoiceChannelByID(to.getChannelSnowflakeID());
 					IGuild guild = voiceChannel.getGuild();
 					IUser user = guild.getUserByID(to.getOwnerSnowflakeID());
-					if((voiceChannel != null) && !voiceChannel.isDeleted() //if channel still exists
-							&&(user != null) //if owner is still in guild
-							&& tempChannelsByGuild.containsKey(guild)){ //and bot is still connected to guild
+					if ((voiceChannel != null) && !voiceChannel.isDeleted() // if channel still exists
+							&& (user != null) // if owner is still in guild
+							&& tempChannelsByGuild.containsKey(guild)) { // and bot is still connected to guild
 						TempChannel tempChannel = new TempChannel(voiceChannel, user, to.getTimeoutInMinutes(), to.getEmptyMinutes());
 						tempChannelsByGuild.get(guild).addTempChannel(tempChannel);
 						importedCount++;
@@ -587,28 +592,28 @@ public class PrivateBot extends Bot {
 			} else {
 				Logger.info("No serialized TempChannels found.");
 			}
-			
+
 		} catch (Exception e) {
 			Logger.error(e);
 			return;
 		}
 
 	}
-	
-	private void removeUnkownChannels(){
-		//get TempCategory for each guild and remove VoiceChannels in the category which aren't in the TempChannelMap
-		Set<IGuild> guilds = tempChannelsByGuild.keySet();		
+
+	private void removeUnkownChannels() {
+		// get TempCategory for each guild and remove VoiceChannels in the category which aren't in the TempChannelMap
+		Set<IGuild> guilds = tempChannelsByGuild.keySet();
 		for (IGuild guild : guilds) {
 			ICategory tempCategory = getTempCategoryForGuild(guild);
-			if(tempCategory != null){
-				for(IVoiceChannel channel : tempCategory.getVoiceChannels()){
-					if(!tempChannelsByGuild.get(guild).isTempChannelForChannelExistentInMap(channel)){
+			if (tempCategory != null) {
+				for (IVoiceChannel channel : tempCategory.getVoiceChannels()) {
+					if (!tempChannelsByGuild.get(guild).isTempChannelForChannelExistentInMap(channel)) {
 						channel.delete();
 					}
 				}
 			}
 		}
-		
+
 	}
-	
+
 }
