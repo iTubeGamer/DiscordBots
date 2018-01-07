@@ -12,7 +12,7 @@ public class Main {
 
 	private static Scanner scanner = new Scanner(System.in);
 	private static UserInput userInput = new UserInput(scanner);
-	private static Bot bot;
+	public static Bot bot;
 
 	public static void main(String[] args) {
 		switch (args.length) {
@@ -31,20 +31,20 @@ public class Main {
 	private static void startBot(String botName, String token) {
 		switch (botName) {
 		case "JokeBot":
-			new JokeBot(token, scanner, userInput);
+			bot = new JokeBot(token, scanner, userInput);
 			break;
 		case "PrivateBot":
-			new PrivateBot(token, scanner, userInput);
+			bot = new PrivateBot(token, scanner, userInput);
 			break;
 		case "ScamBot":
-			new ScamBot(token, scanner, userInput);
+			bot = new ScamBot(token, scanner, userInput);
 			break;
 		default:
 			System.out.println(
 					"The argument containted no valid bot name. Please provide either one argument with the token or a bot name in the first argument and the token in the second argument.");
 			System.exit(1);
 		}
-
+		Runtime.getRuntime().addShutdownHook(new ShutdownHook());
 	}
 
 	private static void startBotLaunchMenue(String token) {

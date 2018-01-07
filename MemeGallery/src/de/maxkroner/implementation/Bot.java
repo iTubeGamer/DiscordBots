@@ -62,11 +62,20 @@ public abstract class Bot {
 			Logger.error(e);
 		}
 	}
+	
+	public void disconnect(){
+		try {
+			client.logout();
+			Logger.info("Logging client out");
+		} catch (DiscordException e) {
+			Logger.error(e);
+		}
+	}
 
 	public IDiscordClient getClient() {
 		return this.client;
 	}
-
+	
 	protected void sendMessage(String message, IChannel channel, Boolean tts) {
 		MessageBuilder mb = new MessageBuilder(this.client).withChannel(channel);
 		if (tts)
@@ -100,16 +109,6 @@ public abstract class Bot {
 	protected void logout(DisconnectedEvent event) {
 		System.out.println("Logged out for reason " + event.getReason() + "!");
 		Logger.info("Logged out for reason " + event.getReason() + "!");
-	}
-	
-	public void disconnect(){
-		try {
-			client.logout();
-			Logger.info("|||---SHUTTING DOWN---|||");
-			System.exit(0);
-		} catch (DiscordException e) {
-			Logger.error(e);
-		}
 	}
 
 	public static IDiscordClient createClient(String token) {

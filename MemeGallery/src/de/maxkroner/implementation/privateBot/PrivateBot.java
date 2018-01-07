@@ -3,10 +3,12 @@ package de.maxkroner.implementation.privateBot;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,9 +34,7 @@ import de.maxkroner.ui.UserInput;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
-import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelCreateEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelDeleteEvent;
-import sx.blah.discord.handle.impl.obj.ReactionEmoji;
 import sx.blah.discord.handle.impl.obj.User;
 import sx.blah.discord.handle.obj.ICategory;
 import sx.blah.discord.handle.obj.IChannel;
@@ -62,10 +62,10 @@ public class PrivateBot extends Bot {
 	public PrivateBot(String token, Scanner scanner, UserInput userInput) {
 		super(token, new PrivateBotMenue(scanner, userInput, tempChannelsByGuild));
 	}
-	
+
 	@Override
-	public void disconnect(){
-		checkEvent.saveTempChannel();
+	public void disconnect() {
+		saveTempChannel();
 		super.disconnect();
 	}
 
@@ -561,6 +561,31 @@ public class PrivateBot extends Bot {
 
 		return "";
 	}
+	
+	/**
+	 * saves all current TempChannels to a file
+	 */
+	public void saveTempChannel() {
+		//create an ArrayList with Transfer Objects (TOs) for each TempChannel
+		ArrayList<TempChannelTO> tempChannelTOs = new ArrayList<>();
+		for (TempChannelMap tempChannelMap : tempChannelsByGuild.values()) {
+			for (TempChannel tempChannel : tempChannelMap.getAllTempChannel()) {
+				TempChannelTO tempChannelTO = new TempChannelTO(tempChannel.getChannel().getLongID(), tempChannel.getOwner().getLongID(),  tempChannel.getTimeoutInMinutes(), tempChannel.getEmptyMinutes());
+				tempChannelTOs.add(tempChannelTO);
+			}
+		}
+		//save the ArrayList to a file
+		try {
+			FileOutputStream fileOut = new FileOutputStream("/tmp/tempChannels.ser");
+			ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			out.writeObject(tempChannelTOs);
+			out.close();
+			fileOut.close();
+			Logger.info("Serialized TempChannels are saved.");
+		} catch (IOException i) {
+			Logger.error(i);
+		}	
+	}
 
 	@SuppressWarnings("unchecked")
 	private void readTempChannelsFromFile() {
@@ -614,13 +639,15 @@ public class PrivateBot extends Bot {
 						Logger.info("Creating 5min timeout TempChannel for unkown channel: \"{}\" in guild {}", channel.getName(), guild.getName());
 					}
 				}
-				for (IChannel channel : tempCategory.getChannels()){
+				for (IChannel channel : tempCategory.getChannels()) {
 					textChannelInTempCategory = true;
 					channel.delete();
 					Logger.info("Delted text channel \"{}\" in TempChannel category");
 				}
-				if(textChannelInTempCategory){
-					sendMessage("Who the hell created TextChannel in the TempChannel category? Get your life fixed! I had to clean up this mess for you...", guild.getDefaultChannel(), false);
+				if (textChannelInTempCategory) {
+					sendMessage(
+							"Who the hell created TextChannel in the TempChannel category? Get your life fixed! I had to clean up this mess for you...",
+							guild.getDefaultChannel(), false);
 				}
 			}
 		}
