@@ -9,6 +9,7 @@ import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.impl.events.shard.DisconnectedEvent;
 import sx.blah.discord.handle.obj.IChannel;
+import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.util.DiscordException;
 import sx.blah.discord.util.Image;
 import sx.blah.discord.util.MessageBuilder;
@@ -17,7 +18,7 @@ public abstract class Bot {
 	private String bot_name = "";
 	protected BotMenue botMenue;
 
-	protected IDiscordClient client; // The instance of the discord client.
+	private IDiscordClient client; // The instance of the discord client.
 
 	public Bot(String token, BotMenue botMenue) {
 		this.client = createClient(token);
@@ -60,13 +61,18 @@ public abstract class Bot {
 		return this.client;
 	}
 
-	public void sendMessage(String message, IChannel channel, Boolean tts) {
-			MessageBuilder mb = new MessageBuilder(this.client).withChannel(channel);
-			if (tts)
-				mb.withTTS();
-			mb.withContent(message);
-			mb.build();
-
+	protected void sendMessage(String message, IChannel channel, Boolean tts) {
+		MessageBuilder mb = new MessageBuilder(this.client).withChannel(channel);
+		if (tts)
+			mb.withTTS();
+		mb.withContent(message);
+		mb.build();
+	}
+	
+	protected void sendPrivateMessage(IUser recepient, String message) {
+		MessageBuilder mb = new MessageBuilder(this.client).withChannel(recepient.getOrCreatePMChannel());
+		mb.withContent(message);
+		mb.build();
 	}
 
 	@EventSubscriber
@@ -84,7 +90,7 @@ public abstract class Bot {
 	}
 
 	@EventSubscriber
-	public void logout(DisconnectedEvent event) {
+	protected void logout(DisconnectedEvent event) {
 		System.out.println("Logged out for reason " + event.getReason() + "!");
 	}
 	

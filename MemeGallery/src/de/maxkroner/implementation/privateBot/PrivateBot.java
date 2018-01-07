@@ -63,7 +63,7 @@ public class PrivateBot extends Bot {
 		readChannelNames();
 
 		// start Channel-Timout
-		for (IGuild guild : client.getGuilds()) {
+		for (IGuild guild : getClient().getGuilds()) {
 			TempChannelMap tempChannelMap = new TempChannelMap();
 			tempChannelsByGuild.put(guild, tempChannelMap);
 		}
@@ -388,7 +388,7 @@ public class PrivateBot extends Bot {
 	private void parseUserParameter(IGuild guild, List<IUser> allowedUsers, List<String> notFound, String parameter) {
 		// user mentioned by snowflake-ID
 		IUser user;
-		MessageTokenizer mt = new MessageTokenizer(client, parameter);
+		MessageTokenizer mt = new MessageTokenizer(getClient(), parameter);
 		if (mt.hasNextMention()) {
 			MentionToken<IDiscordObject> nextMention = mt.nextMention();
 			if (nextMention.getMentionObject().getClass() == User.class) {
@@ -448,20 +448,24 @@ public class PrivateBot extends Bot {
 		setChannelPermissions(owner, allowedUsers, guild, channel);
 
 		// move players into new channel
-		movePlayersToChannel(movePlayers, channel);
+		movePlayersToChannel(movePlayers, channel, event.getAuthor());
 		
-		MessageBuilder mb = new MessageBuilder(this.client).withChannel(event.getChannel());
+		MessageBuilder mb = new MessageBuilder(getClient()).withChannel(event.getChannel());
 		mb.withContent("Yo " + owner + ", I created the channel `" + name + "` 4 u m8 ");
 		mb.appendContent(getRandomChannelEmoji(guild).toString());
 		mb.build();
 
 	}
 
-	private void movePlayersToChannel(List<IUser> playersToMove, IVoiceChannel channel) {
+	private void movePlayersToChannel(List<IUser> playersToMove, IVoiceChannel channel, IUser author) {
 		for (IUser user : playersToMove) {
-			// only move players who are in voice channels already
-			if (user.getVoiceStateForGuild(channel.getGuild()).getChannel() != null)
+			// only move players who are in the same voice channel as the author
+			if (user.getVoiceStateForGuild(channel.getGuild()).getChannel() == author.getVoiceStateForGuild(channel.getGuild()).getChannel()){
 				user.moveToVoiceChannel(channel);
+			} else {
+				sendPrivateMessage(author, "The user " + user.getName() + " wasn't in the same channel as you and therefore couldn't be moved.");
+			}
+				
 		}
 		if (!playersToMove.isEmpty()){Logger.info("Moved players: {}", playersToMove.stream().map(n -> n.getName()).collect(Collectors.joining(", ")));};
 	}

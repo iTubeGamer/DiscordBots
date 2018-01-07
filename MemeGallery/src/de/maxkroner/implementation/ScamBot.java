@@ -33,7 +33,7 @@ public class ScamBot extends Bot {
 
 	private void printConnectedGuilds() {
 		
-		List<IGuild> guilds = client.getGuilds();
+		List<IGuild> guilds = getClient().getGuilds();
 		
 		for (IGuild guild : guilds) {
 			System.out.println(guild.getName());
@@ -42,7 +42,7 @@ public class ScamBot extends Bot {
 
 
 	private void printInvites() {
-		for (IGuild guild : client.getGuilds()) {
+		for (IGuild guild : getClient().getGuilds()) {
 			List<IExtendedInvite> extendedInvites = guild.getExtendedInvites();
 			
 			for (IExtendedInvite extendedInvite : extendedInvites) {
@@ -52,7 +52,7 @@ public class ScamBot extends Bot {
 	}
 	
 	private void printUsers(){
-		for (IGuild guild : client.getGuilds()) {
+		for (IGuild guild : getClient().getGuilds()) {
 			List<IUser> users = guild.getUsers();
 			System.out.println("Connected Users for guild " + guild.getName() + ":");
 			for (IUser user : users) {

@@ -67,7 +67,7 @@ public class JokeBot extends Bot {
 		String message = event.getMessage().getContent();
 		IChannel channel = event.getMessage().getChannel();
 		if (message.startsWith("!change nick")) {
-			User user = (User) client.getOurUser();
+			User user = (User) getClient().getOurUser();
 			channel.getGuild().setUserNickname(user, message.substring(13));
 		} else if ((message.startsWith("!joke ") && (message.length() > 6))) {
 			tellJoke(message.substring(message.indexOf(" ") + 1), channel);
