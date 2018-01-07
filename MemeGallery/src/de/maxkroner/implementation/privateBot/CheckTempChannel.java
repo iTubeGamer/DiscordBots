@@ -15,6 +15,7 @@ import sx.blah.discord.handle.obj.IGuild;
 
 public class CheckTempChannel<E> implements Runnable {
 	private HashMap<IGuild, TempChannelMap> tempChannelsByGuild;
+	int tempChannelsBefore = 0;
 
 	public CheckTempChannel(HashMap<IGuild, TempChannelMap> channelMap, ScheduledExecutorService executor) {
 		super();
@@ -23,9 +24,11 @@ public class CheckTempChannel<E> implements Runnable {
 
 	@Override
 	public void run() {
+		tempChannelsBefore = 0;
 		try {
 			// iterate over the tempChannelMaps per Guild to check the timeout
 			for (TempChannelMap tempChannelMap : tempChannelsByGuild.values()) {
+				tempChannelsBefore += tempChannelMap.getAllTempChannel().size();
 				// iterate over all the tempChannels of the Guild (collect all TempChannels and delete them later)
 				List<TempChannel> tempChannelToDelete = new ArrayList<TempChannel>();
 				for (TempChannel tempChannel : tempChannelMap.getAllTempChannel()) {
@@ -75,7 +78,7 @@ public class CheckTempChannel<E> implements Runnable {
 			}
 		}
 		//save the ArrayList to a file
-		if (!tempChannelTOs.isEmpty()){
+		if (!(tempChannelTOs.isEmpty() && tempChannelsBefore == 0)){
 			try {
 				FileOutputStream fileOut = new FileOutputStream("/tmp/tempChannels.ser");
 				ObjectOutputStream out = new ObjectOutputStream(fileOut);
