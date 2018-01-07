@@ -102,7 +102,7 @@ public class PrivateBotMenue extends BotMenue {
 					.toArray(Integer[]::new);
 			
 			Integer[] emptyValues = tempChannelsByGuild.get(chosenGuild).getAllTempChannel().stream()
-					.map(TempChannel::getEmptyMinuts)
+					.map(TempChannel::getEmptyMinutes)
 					.toArray(Integer[]::new);
 			
 

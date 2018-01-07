@@ -16,8 +16,16 @@ public class TempChannel {
 		this.emptyMinuts = 0;
 		this.owner = owner;
 	}
+	
+	public TempChannel(IVoiceChannel channel, IUser owner, int timeoutInMinutes, int emptyMinutes) {
+		super();
+		this.channel = channel;
+		this.timeoutInMinutes = timeoutInMinutes;
+		this.emptyMinuts = emptyMinutes;
+		this.owner = owner;
+	}
 
-	public int getEmptyMinuts() {
+	public int getEmptyMinutes() {
 		return emptyMinuts;
 	}
 

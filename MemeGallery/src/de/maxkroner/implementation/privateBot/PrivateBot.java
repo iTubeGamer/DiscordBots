@@ -1,9 +1,12 @@
 package de.maxkroner.implementation.privateBot;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 import org.pmw.tinylog.Logger;
 
 import de.maxkroner.implementation.Bot;
+import de.maxkroner.to.TempChannelTO;
 import de.maxkroner.ui.PrivateBotMenue;
 import de.maxkroner.ui.UserInput;
 import sx.blah.discord.api.events.EventSubscriber;
@@ -63,11 +67,18 @@ public class PrivateBot extends Bot {
 		super.onReady(event);
 		readChannelNames();
 
-		// start Channel-Timout
+		// create tempChannelMaps
 		for (IGuild guild : getClient().getGuilds()) {
-			TempChannelMap tempChannelMap = new TempChannelMap();
-			tempChannelsByGuild.put(guild, tempChannelMap);
+			if (!tempChannelsByGuild.containsKey(guild)) {
+				TempChannelMap tempChannelMap = new TempChannelMap();
+				tempChannelsByGuild.put(guild, tempChannelMap);
+			}
 		}
+
+		// import previous TempChannels from file
+		readTempChannelsFromFile();
+
+		// start Channel-Timout Scheduler
 		ScheduledExecutorService executor = Executors.newScheduledThreadPool(5);
 		CheckTempChannel<Runnable> checkEvent = new CheckTempChannel<Runnable>(tempChannelsByGuild, executor);
 		executor.scheduleAtFixedRate(checkEvent, 1, 1, TimeUnit.MINUTES);
@@ -75,18 +86,18 @@ public class PrivateBot extends Bot {
 	}
 
 	@EventSubscriber
-	public void onVoiceChannelDelete(VoiceChannelDeleteEvent event) {	
+	public void onVoiceChannelDelete(VoiceChannelDeleteEvent event) {
 		// get Channel that got deleted
 		IChannel deletedChannel = event.getVoiceChannel();
-		
+
 		// get TempChannel for the Channel
 		TempChannelMap tempChannelMap = tempChannelsByGuild.get(event.getGuild());
 		TempChannel tempChannelToRemove = tempChannelMap.getTempChannelForChannel(deletedChannel);
-		
-		//delete if TempChannel exists
+
+		// delete if TempChannel exists
 		if (tempChannelToRemove != null) {
 			Logger.info("Removing TempChannel \"{}\" from map!", deletedChannel.getName());
-		
+
 			tempChannelMap.removeTempChannel(tempChannelToRemove);
 		}
 	}
@@ -109,8 +120,8 @@ public class PrivateBot extends Bot {
 				// modifierStrings =
 				// Arrays.stream(modifierStrings).map(String::trim).filter(s ->
 				// !s.isEmpty()).toArray(String[]::new);
-				modifierList = (List<Modifier>) Arrays.stream(modifierStrings).map(String::trim)
-						.filter(s -> !s.isEmpty()).map(s -> parseModifierFromString(s)).collect(Collectors.toList());
+				modifierList = (List<Modifier>) Arrays.stream(modifierStrings).map(String::trim).filter(s -> !s.isEmpty())
+						.map(s -> parseModifierFromString(s)).collect(Collectors.toList());
 			}
 		}
 
@@ -132,19 +143,12 @@ public class PrivateBot extends Bot {
 
 	// not used, for better performance
 	/**
-	 * @EventSubscriber public void
-	 *                  onUserVoiceChannelJoin(UserVoiceChannelJoinEvent event)
-	 *                  { //updateChannelTimeout(event.getVoiceChannel()); }
+	 * @EventSubscriber public void onUserVoiceChannelJoin(UserVoiceChannelJoinEvent event) { //updateChannelTimeout(event.getVoiceChannel()); }
 	 * 
-	 * @EventSubscriber public void
-	 *                  onUserVoiceChannelMove(UserVoiceChannelMoveEvent event)
-	 *                  { //updateChannelTimeout(event.getVoiceChannel()); }
+	 * @EventSubscriber public void onUserVoiceChannelMove(UserVoiceChannelMoveEvent event) { //updateChannelTimeout(event.getVoiceChannel()); }
 	 * 
-	 *                  private void updateChannelTimeout(IVoiceChannel
-	 *                  voiceChannel) { for (TempChannel tempChannel :
-	 *                  tempChannels) { if
-	 *                  (tempChannel.getChannel().equals(voiceChannel)) {
-	 *                  tempChannel.setEmptyMinuts(0); } } }
+	 *                  private void updateChannelTimeout(IVoiceChannel voiceChannel) { for (TempChannel tempChannel : tempChannels) { if
+	 *                  (tempChannel.getChannel().equals(voiceChannel)) { tempChannel.setEmptyMinuts(0); } } }
 	 **/
 
 	// ----- MESSAGE PARSING ----- //
@@ -156,18 +160,15 @@ public class PrivateBot extends Bot {
 
 		// check if User is in voice channel of the guild
 		if (author.getVoiceStateForGuild(guild).getChannel() == null) {
-			sendMessage(author + " please join a voice channel before activating a channel command.", channel,
-					false);
+			sendMessage(author + " please join a voice channel before activating a channel command.", channel, false);
 			return;
 		}
 
 		// check if User-Channel-Count-Limit is reached
 		if (getUserChannelCountOnGuild(author, guild) >= USER_CHANNEL_LIMIT) {
-			sendMessage(
-					"Sorry " + author + ", but you reached the personal channel limit of "
-							+ USER_CHANNEL_LIMIT + ". Use !cc to delete all of your empty temporary channels. "
-							+ "With the modifier -f you can force to delte all channels, even those who aren't empty!",
-					channel, false);
+			sendMessage("Sorry " + author + ", but you reached the personal channel limit of " + USER_CHANNEL_LIMIT
+					+ ". Use !cc to delete all of your empty temporary channels. "
+					+ "With the modifier -f you can force to delte all channels, even those who aren't empty!", channel, false);
 			Logger.info("User \"{}\" reached his channel limit. Channel wasn't created.", author.getName());
 			return;
 		}
@@ -187,7 +188,7 @@ public class PrivateBot extends Bot {
 				break;
 			case "m":
 				movePlayers = parseMoveModifier(modifierList, modifier, event, movePlayers);
-				if(movePlayers == null){
+				if (movePlayers == null) {
 					moveAllowedPlayers = true;
 				}
 				break;
@@ -201,9 +202,8 @@ public class PrivateBot extends Bot {
 					name = name.substring(1);
 
 				} else {
-					sendMessage(
-							"Please use the name-modifier (-n) with a parameter to specify the channel-name. (f.e. !c -n channel_title)",
-							channel, false);
+					sendMessage("Please use the name-modifier (-n) with a parameter to specify the channel-name. (f.e. !c -n channel_title)", channel,
+							false);
 				}
 				break;
 			case "l":
@@ -212,14 +212,11 @@ public class PrivateBot extends Bot {
 					if (given_limit >= 1 && given_limit <= 99) {
 						limit = given_limit;
 					} else {
-						sendMessage(
-								"Please use the user-limit-modifier (-l) with a parameter to specify the user-limit. (f.e. !c -l 5)",
-								channel, false);
+						sendMessage("Please use the user-limit-modifier (-l) with a parameter to specify the user-limit. (f.e. !c -l 5)", channel,
+								false);
 					}
 				} else {
-					sendMessage(
-							"Please use the user-limit-modifier (-l) with a parameter to specify the user-limit. (f.e. !c -l 5)",
-							channel, false);
+					sendMessage("Please use the user-limit-modifier (-l) with a parameter to specify the user-limit. (f.e. !c -l 5)", channel, false);
 				}
 				break;
 			case "t":
@@ -228,21 +225,18 @@ public class PrivateBot extends Bot {
 					if (given_timeout >= 1 && given_timeout <= 180) {
 						timeout = given_timeout;
 					} else {
-						sendMessage(
-								"Please use the timout-modifier (-t) only with a parameter between 1-180 minutes (f.e. !c -t 5)",
-								channel, false);
+						sendMessage("Please use the timout-modifier (-t) only with a parameter between 1-180 minutes (f.e. !c -t 5)", channel, false);
 					}
 				} else {
-					sendMessage("Please use the timout-modifier (-t) only with a parameter between 1-180 (f.e. !c -t 5)",
-							channel, false);
+					sendMessage("Please use the timout-modifier (-t) only with a parameter between 1-180 (f.e. !c -t 5)", channel, false);
 				}
 
 				break;
 			}
 		}
-		
-		//if all the players that are allowed in the channel (-p) should be moved, add them to the move list
-		if (moveAllowedPlayers){
+
+		// if all the players that are allowed in the channel (-p) should be moved, add them to the move list
+		if (moveAllowedPlayers) {
 			movePlayers = new ArrayList<IUser>();
 			movePlayers.addAll(allowedUsers);
 			movePlayers.add(author);
@@ -251,7 +245,7 @@ public class PrivateBot extends Bot {
 		createChannel(event, name, allowedUsers, movePlayers, limit, timeout);
 
 	}
-	
+
 	private void parseChannelClearCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		IGuild guild = event.getGuild();
@@ -277,7 +271,7 @@ public class PrivateBot extends Bot {
 				break;
 			}
 		}
-		
+
 		// delete the channels
 		boolean sendMessage = false;
 		for (Iterator<TempChannel> iterator = userChannels.iterator(); iterator.hasNext();) {
@@ -286,7 +280,7 @@ public class PrivateBot extends Bot {
 				Logger.info("Deleting empty channel \"{}\"", userChannel.getName());
 				userChannel.delete();
 			} else {
-				if (forceDelete){
+				if (forceDelete) {
 					Logger.info("Force-Deleting channel \"{}\"", userChannel.getName());
 					userChannel.delete();
 				} else {
@@ -295,25 +289,24 @@ public class PrivateBot extends Bot {
 				}
 			}
 		}
-		
-		if (sendMessage){
+
+		if (sendMessage) {
 			sendMessage("Some of your channels arent empty. Use \"!cc -f\" to force the deletion anyway.", channel, false);
 		}
-		
+
 	}
 
 	private void parseKickCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		sendMessage("Kick available soon!", event.getChannel(), false);
 	}
-	
+
 	private void parseBanCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		sendMessage("Ban available soon!", event.getChannel(), false);
 	}
 
-	private List<IUser> parseMoveModifier(List<Modifier> modifierList, Modifier modifier,
-			MessageReceivedEvent event, List<IUser> movePlayers) {
+	private List<IUser> parseMoveModifier(List<Modifier> modifierList, Modifier modifier, MessageReceivedEvent event, List<IUser> movePlayers) {
 
 		boolean privateModifierUsed = modifierListContainsModifierstring("p", modifierList);
 		if (modifier.getParameterList().length > 0 && privateModifierUsed) {
@@ -326,9 +319,9 @@ public class PrivateBot extends Bot {
 
 		// all users in current channel should be moved
 		if (modifier.getParameterList()[0].equals("all")) {
-			if ((event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers() != null)){
+			if ((event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers() != null)) {
 				movePlayers = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers();
-			}	
+			}
 		} else {
 			// users mentioned by name
 			parseUserList(modifier, event, movePlayers, "-m");
@@ -364,16 +357,14 @@ public class PrivateBot extends Bot {
 		return allowedUsers;
 	}
 
-	private void parseUserList(Modifier modifier, MessageReceivedEvent event, List<IUser> userList,
-			String modifierString) {
+	private void parseUserList(Modifier modifier, MessageReceivedEvent event, List<IUser> userList, String modifierString) {
 		List<String> notFound = new ArrayList<>();
 		for (String parameter : modifier.getParameterList()) {
 			parseUserParameter(event.getGuild(), userList, notFound, parameter);
 		}
 
 		if (notFound.size() == modifier.getParameterList().length) {
-			sendMessage("All the user's mentioned behind the modifier " + modifierString + " we're not recognized.",
-					event.getChannel(), false);
+			sendMessage("All the user's mentioned behind the modifier " + modifierString + " we're not recognized.", event.getChannel(), false);
 			return;
 		} else if (!notFound.isEmpty()) {
 			String not_found = "";
@@ -416,8 +407,7 @@ public class PrivateBot extends Bot {
 		if (modifierString.contains(" ")) {
 			String parameterString = modifierString.substring(modifierString.indexOf(" ") + 1);
 			parameterString = parameterString + " ";
-			String[] parameterList = Arrays.stream(parameterString.split(" ")).filter(s -> !s.isEmpty())
-					.toArray(String[]::new);
+			String[] parameterList = Arrays.stream(parameterString.split(" ")).filter(s -> !s.isEmpty()).toArray(String[]::new);
 			if (parameterList.length >= 1) {
 				modifier.setParameterList(parameterList);
 			}
@@ -427,8 +417,7 @@ public class PrivateBot extends Bot {
 	}
 
 	// ----- EXCECUTING METHODS ----- //
-	private void createChannel(MessageReceivedEvent event, String name, List<IUser> allowedUsers,
-			List<IUser> movePlayers, int limit, int timeout) {
+	private void createChannel(MessageReceivedEvent event, String name, List<IUser> allowedUsers, List<IUser> movePlayers, int limit, int timeout) {
 		IGuild guild = event.getGuild();
 		IUser owner = event.getAuthor();
 
@@ -438,7 +427,7 @@ public class PrivateBot extends Bot {
 
 		// put channel to temp category
 		moveChannelToTempCategory(guild, channel);
-		
+
 		// set user limit
 		channel.changeUserLimit(limit);
 
@@ -451,7 +440,7 @@ public class PrivateBot extends Bot {
 
 		// move players into new channel
 		movePlayersToChannel(movePlayers, channel, event.getAuthor());
-		
+
 		MessageBuilder mb = new MessageBuilder(getClient()).withChannel(event.getChannel());
 		mb.withContent("Yo " + owner + ", I created the channel `" + name + "` 4 u m8 ");
 		mb.appendContent(getRandomChannelEmoji(guild));
@@ -462,14 +451,17 @@ public class PrivateBot extends Bot {
 	private void movePlayersToChannel(List<IUser> playersToMove, IVoiceChannel channel, IUser author) {
 		for (IUser user : playersToMove) {
 			// only move players who are in the same voice channel as the author
-			if (user.getVoiceStateForGuild(channel.getGuild()).getChannel() == author.getVoiceStateForGuild(channel.getGuild()).getChannel()){
+			if (user.getVoiceStateForGuild(channel.getGuild()).getChannel() == author.getVoiceStateForGuild(channel.getGuild()).getChannel()) {
 				user.moveToVoiceChannel(channel);
 			} else {
 				sendPrivateMessage(author, "The user " + user + " wasn't in the same channel as you and therefore couldn't be moved.");
 			}
-				
+
 		}
-		if (!playersToMove.isEmpty()){Logger.info("Moved players: {}", playersToMove.stream().map(n -> n.getName()).collect(Collectors.joining(", ")));};
+		if (!playersToMove.isEmpty()) {
+			Logger.info("Moved players: {}", playersToMove.stream().map(n -> n.getName()).collect(Collectors.joining(", ")));
+		}
+		;
 	}
 
 	private void setChannelPermissions(IUser owner, List<IUser> allowedUsers, IGuild guild, IVoiceChannel channel) {
@@ -520,8 +512,7 @@ public class PrivateBot extends Bot {
 	private static void fileToArray(String fileName, List<String> list, int maxLength) {
 		try (InputStream is = PrivateBot.class.getClassLoader().getResourceAsStream(fileName)) {
 			list.addAll(new BufferedReader(new InputStreamReader(is, StandardCharsets.ISO_8859_1)).lines()
-					.filter(s -> s != null && s.length() > 0 && (maxLength == 0 || s.length() <= maxLength))
-					.collect(Collectors.toList()));
+					.filter(s -> s != null && s.length() > 0 && (maxLength == 0 || s.length() <= maxLength)).collect(Collectors.toList()));
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
 		}
@@ -551,14 +542,51 @@ public class PrivateBot extends Bot {
 		return false;
 	}
 
-	private String getRandomChannelEmoji(IGuild guild){
+	private String getRandomChannelEmoji(IGuild guild) {
 		List<IEmoji> channelEmojis = guild.getEmojis();
-		if(!channelEmojis.isEmpty()){
+		if (!channelEmojis.isEmpty()) {
 			int index = ThreadLocalRandom.current().nextInt(0, channelEmojis.size());
 			return channelEmojis.get(index).toString();
 		}
-		
+
 		return "";
-		
+	}
+
+	@SuppressWarnings("unchecked")
+	private void readTempChannelsFromFile() {
+		try {
+			if (new File("/tmp/tempChannels.ser").exists()) {
+				// read ArrayList of TempChannelTOs from file
+				FileInputStream fileIn = new FileInputStream("/tmp/tempChannels.ser");
+				ObjectInputStream in = new ObjectInputStream(fileIn);
+				ArrayList<TempChannelTO> tempChannelTOs = (ArrayList<TempChannelTO>) in.readObject();
+				in.close();
+				fileIn.close();
+				Logger.info("Read {} serialized TempChannels", tempChannelTOs.size());
+				int importedCount = 0;
+				// create TempChannels from TOs
+				for (TempChannelTO to : tempChannelTOs) {
+					IVoiceChannel voiceChannel = getClient().getVoiceChannelByID(to.getChannelSnowflakeID());
+					IGuild guild = voiceChannel.getGuild();
+					IUser user = guild.getUserByID(to.getOwnerSnowflakeID());
+					if((voiceChannel != null) && !voiceChannel.isDeleted() //if channel still exists
+							&&(user != null) //if owner is still in guild
+							&& tempChannelsByGuild.containsKey(guild)){ //and bot is still connected to guild
+						TempChannel tempChannel = new TempChannel(voiceChannel, user, to.getTimeoutInMinutes(), to.getEmptyMinutes());
+						tempChannelsByGuild.get(guild).addTempChannel(tempChannel);
+						importedCount++;
+					}
+				}
+				Logger.info("Importet {} from the {} serialized TempChannels", importedCount, tempChannelTOs.size());
+
+			} else {
+				Logger.info("No serialized TempChannels found.");
+			}
+			
+		} catch (Exception e) {
+			Logger.error(e);
+			return;
+		}
+
 	}
 }

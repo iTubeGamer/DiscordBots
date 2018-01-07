@@ -1,5 +1,6 @@
 package de.maxkroner.implementation.privateBot;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -7,7 +8,8 @@ import java.util.HashMap;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
 
-public class TempChannelMap {
+public class TempChannelMap implements Serializable {
+	private static final long serialVersionUID = -3856294674047916112L;
 	private HashMap<IChannel, TempChannel> channelTempChannelMap;
 	private HashMap<IUser, ArrayList<TempChannel>> userTempChannelMap;
 	
