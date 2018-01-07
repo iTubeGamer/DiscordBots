@@ -64,10 +64,4 @@ public class Main {
 		}
 	}
 
-	public static void exit() {
-		bot.disconnect();
-		System.out.println("finished");
-		System.exit(0);
-	}
-
 }

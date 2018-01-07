@@ -97,6 +97,7 @@ public abstract class Bot {
 	public void disconnect(){
 		try {
 			client.logout();
+			System.exit(0);
 		} catch (DiscordException e) {
 			e.printStackTrace();
 		}

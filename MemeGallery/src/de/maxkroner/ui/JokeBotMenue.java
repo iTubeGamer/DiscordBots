@@ -58,7 +58,7 @@ public class JokeBotMenue extends BotMenue {
 						break;
 					case 5:
 						if (userInput.getYesNoResult("Are you sure?")) {
-							Main.exit();
+							bot.disconnect();;
 						}
 					}
 				}
