@@ -31,10 +31,20 @@ public class CheckTempChannel<E> implements Runnable {
 							tempChannel.setEmptyMinutes(tempChannel.getEmptyMinutes() + 1);
 							Logger.info("Channel \"{}\" is empty, increased emptyMinutes to {}", tempChannel.getChannel().getName(),
 									tempChannel.getEmptyMinutes());
+							//warn user before channel gets deleted
 							if (tempChannel.getEmptyMinutes() > tempChannel.getTimeoutInMinutes()) {
 								Logger.info("Channel \"{}\" exceeded it's timeout of {} minutes, deleting channel now",
 										tempChannel.getChannel().getName(), tempChannel.getTimeoutInMinutes());
 								tempChannelToDelete.add(tempChannel);
+								tempChannel.getOwner().getOrCreatePMChannel().sendMessage("Your tempChannel \"" + tempChannel.getChannel().getName()
+										+ "\" has been empty for reached it's timeout and got deleted.");
+							} else if (tempChannel.getTimeoutInMinutes() < 10 && (tempChannel.getTimeoutInMinutes() - tempChannel.getEmptyMinutes()) == 0){
+								tempChannel.getOwner().getOrCreatePMChannel().sendMessage("Your tempChannel \"" + tempChannel.getChannel().getName()
+										+ "\" has been empty for " + tempChannel.getEmptyMinutes() + " minutes. It will be deleted in a minute if you do not use it.");
+							} else if ((tempChannel.getTimeoutInMinutes() - tempChannel.getEmptyMinutes()) == 4
+									&& tempChannel.getTimeoutInMinutes() >= 10) {
+								tempChannel.getOwner().getOrCreatePMChannel().sendMessage("Your tempChannel \"" + tempChannel.getChannel().getName()
+										+ "\" has been empty for " + tempChannel.getEmptyMinutes() + " minutes. It will be deleted in 5 minutes if you do not use it.");
 							}
 						} else {
 							tempChannel.setEmptyMinutes(0);
@@ -56,7 +66,5 @@ public class CheckTempChannel<E> implements Runnable {
 			Logger.error(e);
 		}
 	}
-	
-	
 
 }
