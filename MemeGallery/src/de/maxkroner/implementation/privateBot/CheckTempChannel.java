@@ -7,13 +7,18 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import org.pmw.tinylog.Logger;
 
+import sx.blah.discord.api.IDiscordClient;
 import sx.blah.discord.handle.obj.IGuild;
+import sx.blah.discord.handle.obj.IUser;
+import sx.blah.discord.util.MessageBuilder;
 
 public class CheckTempChannel<E> implements Runnable {
 	private HashMap<IGuild, TempChannelMap> tempChannelsByGuild;
+	IDiscordClient client;
 
-	public CheckTempChannel(HashMap<IGuild, TempChannelMap> channelMap, ScheduledExecutorService executor) {
+	public CheckTempChannel(HashMap<IGuild, TempChannelMap> channelMap, IDiscordClient client, ScheduledExecutorService executor) {
 		super();
+		this.client = client;
 		this.tempChannelsByGuild = channelMap;
 	}
 
@@ -36,15 +41,19 @@ public class CheckTempChannel<E> implements Runnable {
 								Logger.info("Channel \"{}\" exceeded it's timeout of {} minutes, deleting channel now",
 										tempChannel.getChannel().getName(), tempChannel.getTimeoutInMinutes());
 								tempChannelToDelete.add(tempChannel);
-								tempChannel.getOwner().getOrCreatePMChannel().sendMessage("Your tempChannel \"" + tempChannel.getChannel().getName()
+								sendPrivateMessage(tempChannel.getOwner(), "Your tempChannel \"" + tempChannel.getChannel().getName()
 										+ "\" has been empty for reached it's timeout and got deleted.");
 							} else if (tempChannel.getTimeoutInMinutes() < 10 && (tempChannel.getTimeoutInMinutes() - tempChannel.getEmptyMinutes()) == 0){
-								tempChannel.getOwner().getOrCreatePMChannel().sendMessage("Your tempChannel \"" + tempChannel.getChannel().getName()
+								Logger.debug("telling user his channel will get deleted in a minute");
+								sendPrivateMessage(tempChannel.getOwner(), "Your tempChannel \"" + tempChannel.getChannel().getName()
 										+ "\" has been empty for " + tempChannel.getEmptyMinutes() + " minutes. It will be deleted in a minute if you do not use it.");
+								Logger.debug("ok i told it to him succesfully");
 							} else if ((tempChannel.getTimeoutInMinutes() - tempChannel.getEmptyMinutes()) == 4
 									&& tempChannel.getTimeoutInMinutes() >= 10) {
-								tempChannel.getOwner().getOrCreatePMChannel().sendMessage("Your tempChannel \"" + tempChannel.getChannel().getName()
+								Logger.debug("telling user his channel will get delted in 5 minutes");
+								sendPrivateMessage(tempChannel.getOwner(),"Your tempChannel \"" + tempChannel.getChannel().getName()
 										+ "\" has been empty for " + tempChannel.getEmptyMinutes() + " minutes. It will be deleted in 5 minutes if you do not use it.");
+								Logger.debug("ok i told it to him succesfully");
 							}
 						} else {
 							tempChannel.setEmptyMinutes(0);
@@ -66,5 +75,10 @@ public class CheckTempChannel<E> implements Runnable {
 			Logger.error(e);
 		}
 	}
-
+	
+	protected void sendPrivateMessage(IUser recepient, String message) {
+		MessageBuilder mb = new MessageBuilder(this.client).withChannel(recepient.getOrCreatePMChannel());
+		mb.withContent(message);
+		mb.build();
+	}
 }

@@ -54,7 +54,7 @@ public class PrivateBot extends Bot {
 	private static final EnumSet<Permissions> voice_connect = EnumSet.of(Permissions.VOICE_CONNECT);
 	private static final EnumSet<Permissions> empty = EnumSet.noneOf(Permissions.class);
 	private static final int USER_CHANNEL_LIMIT = 3;
-	private CheckTempChannel<Runnable> checkEvent;
+	
 	static {
 		fileToArray("channelnames.txt", channelNames, 0);
 	}
@@ -91,7 +91,7 @@ public class PrivateBot extends Bot {
 
 		// start Channel-Timout Scheduler
 		ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-		checkEvent = new CheckTempChannel<Runnable>(tempChannelsByGuild, executor);
+		CheckTempChannel<Runnable> checkEvent = new CheckTempChannel<Runnable>(tempChannelsByGuild, getClient(), executor);
 		executor.scheduleAtFixedRate(checkEvent, 1, 1, TimeUnit.MINUTES);
 		Logger.info("TempChannels startet up and ready 2 go!");
 	}
