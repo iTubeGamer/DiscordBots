@@ -2,6 +2,8 @@ package de.maxkroner.to;
 
 import java.io.Serializable;
 
+import de.maxkroner.implementation.privateBot.TempChannel;
+
 public class TempChannelTO implements Serializable {
 	private static final long serialVersionUID = 7849100261328007354L;
 
@@ -16,6 +18,10 @@ public class TempChannelTO implements Serializable {
 		this.ownerSnowflakeID = ownerSnowflakeID;
 		this.timeoutInMinutes = timeoutInMinutes;
 		this.emptyMinutes = emptyMinutes;
+	}
+	
+	public static TempChannelTO createFromTempChannel(TempChannel tempChannel){
+		return new TempChannelTO(tempChannel.getChannel().getLongID(), tempChannel.getOwner().getLongID(),  tempChannel.getTimeoutInMinutes(), tempChannel.getEmptyMinutes());
 	}
 
 	public long getChannelSnowflakeID() {

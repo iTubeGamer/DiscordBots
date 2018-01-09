@@ -10,6 +10,7 @@ import org.pmw.tinylog.Logger;
 import sx.blah.discord.api.IDiscordClient;
 import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IUser;
+import sx.blah.discord.util.DiscordException;
 import sx.blah.discord.util.MessageBuilder;
 
 public class CheckTempChannel<E> implements Runnable {
@@ -41,19 +42,15 @@ public class CheckTempChannel<E> implements Runnable {
 								Logger.info("Channel \"{}\" exceeded it's timeout of {} minutes, deleting channel now",
 										tempChannel.getChannel().getName(), tempChannel.getTimeoutInMinutes());
 								tempChannelToDelete.add(tempChannel);
-								sendPrivateMessage(tempChannel.getOwner(), "Your tempChannel \"" + tempChannel.getChannel().getName()
-										+ "\" has been empty for reached it's timeout and got deleted.");
+								sendPrivateMessage(tempChannel.getOwner(), "Your TempChannel `" + tempChannel.getChannel().getName()
+										+ "` got deleted.");
 							} else if (tempChannel.getTimeoutInMinutes() < 10 && (tempChannel.getTimeoutInMinutes() - tempChannel.getEmptyMinutes()) == 0){
-								Logger.debug("telling user his channel will get deleted in a minute");
-								sendPrivateMessage(tempChannel.getOwner(), "Your tempChannel \"" + tempChannel.getChannel().getName()
-										+ "\" has been empty for " + tempChannel.getEmptyMinutes() + " minutes. It will be deleted in a minute if you do not use it.");
-								Logger.debug("ok i told it to him succesfully");
+								sendPrivateMessage(tempChannel.getOwner(), "Your tempChannel `" + tempChannel.getChannel().getName()
+										+ "`  will be **deleted in a minute** if you do not use it.");
 							} else if ((tempChannel.getTimeoutInMinutes() - tempChannel.getEmptyMinutes()) == 4
 									&& tempChannel.getTimeoutInMinutes() >= 10) {
-								Logger.debug("telling user his channel will get delted in 5 minutes");
-								sendPrivateMessage(tempChannel.getOwner(),"Your tempChannel \"" + tempChannel.getChannel().getName()
-										+ "\" has been empty for " + tempChannel.getEmptyMinutes() + " minutes. It will be deleted in 5 minutes if you do not use it.");
-								Logger.debug("ok i told it to him succesfully");
+								sendPrivateMessage(tempChannel.getOwner(),"Your tempChannel `" + tempChannel.getChannel().getName()
+										+ "` will be **deleted in 5 minutes** if you do not use it.");
 							}
 						} else {
 							tempChannel.setEmptyMinutes(0);
@@ -77,8 +74,16 @@ public class CheckTempChannel<E> implements Runnable {
 	}
 	
 	protected void sendPrivateMessage(IUser recepient, String message) {
-		MessageBuilder mb = new MessageBuilder(this.client).withChannel(recepient.getOrCreatePMChannel());
-		mb.withContent(message);
-		mb.build();
+		if(!recepient.equals(client.getOurUser())){
+			try{
+				MessageBuilder mb = new MessageBuilder(this.client).withChannel(recepient.getOrCreatePMChannel());
+				mb.withContent(message);
+				mb.build();
+			} catch (DiscordException e){
+				Logger.warn("Received DiscordException in sendMessage, user possibly blocked the bot in private chat");
+			}
+			
+		}
+		
 	}
 }

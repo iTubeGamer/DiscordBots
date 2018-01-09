@@ -3,6 +3,7 @@ package de.maxkroner.implementation.privateBot;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,6 +11,8 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -19,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
@@ -33,6 +37,9 @@ import de.maxkroner.ui.PrivateBotMenue;
 import de.maxkroner.ui.UserInput;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
+import sx.blah.discord.handle.impl.events.guild.GuildCreateEvent;
+import sx.blah.discord.handle.impl.events.guild.GuildLeaveEvent;
+import sx.blah.discord.handle.impl.events.guild.GuildUnavailableEvent;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelDeleteEvent;
 import sx.blah.discord.handle.impl.obj.User;
@@ -49,18 +56,26 @@ import sx.blah.discord.util.MessageTokenizer;
 import sx.blah.discord.util.MessageTokenizer.MentionToken;
 
 public class PrivateBot extends Bot {
+	private static final int timeout_for_unknown_channels = 5; 
 	private static ArrayList<String> channelNames = new ArrayList<>();
 	private static HashMap<IGuild, TempChannelMap> tempChannelsByGuild = new HashMap<>();
+	private static ArrayList<TempChannel> stashedChannels = new ArrayList<>(); // if bot leaves Guild tempChannels get stashed
 	private static final EnumSet<Permissions> voice_connect = EnumSet.of(Permissions.VOICE_CONNECT);
 	private static final EnumSet<Permissions> empty = EnumSet.noneOf(Permissions.class);
 	private static final int USER_CHANNEL_LIMIT = 3;
-	
+	private static String path_serialized_tempChannels = "~/discordBots/tempChannels/temp/";
+	private static final String file_name = "tempChannels.ser";
+	private static String home = "";
+	private static boolean still_in_startup_mode = true;
+
 	static {
 		fileToArray("channelnames.txt", channelNames, 0);
 	}
 
 	public PrivateBot(String token, Scanner scanner, UserInput userInput) {
 		super(token, new PrivateBotMenue(scanner, userInput, tempChannelsByGuild));
+		home = System.getProperty("user.home");
+		path_serialized_tempChannels = Paths.get(home, "discordBots", "tempChannels", "tmp").toString();
 	}
 
 	@Override
@@ -87,13 +102,43 @@ public class PrivateBot extends Bot {
 		readTempChannelsFromFile();
 
 		// delete Channel which aren't existent in map
-		removeUnkownChannels();
+		removeUnkownChannelsForGuild(tempChannelsByGuild.keySet());
 
 		// start Channel-Timout Scheduler
 		ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
 		CheckTempChannel<Runnable> checkEvent = new CheckTempChannel<Runnable>(tempChannelsByGuild, getClient(), executor);
 		executor.scheduleAtFixedRate(checkEvent, 1, 1, TimeUnit.MINUTES);
 		Logger.info("TempChannels startet up and ready 2 go!");
+		still_in_startup_mode = false;
+	}
+
+	@EventSubscriber
+	public void onGuildCreateEvent(GuildCreateEvent event) {
+		// if the bot is added to a new guild, add guild to map
+		IGuild guild = event.getGuild();
+		Logger.info("Received GuildCreateEvent for guild {}", guild.getName());
+		if (tempChannelsByGuild != null && !still_in_startup_mode) {
+			if (!tempChannelsByGuild.containsKey(guild)) {
+				TempChannelMap tempChannelMap = new TempChannelMap();
+				tempChannelsByGuild.put(guild, tempChannelMap);
+				importStashedChannelsForGuild(guild);
+				removeUnknownChannelsForGuild(guild);
+			}
+		}
+	}
+
+	@EventSubscriber
+	public void onGuildLeaveEvent(GuildLeaveEvent event) {
+		IGuild guild = event.getGuild();
+		Logger.warn("Received GuildLeaveEvent for guild {}", guild.getName());
+		stashChannelsAndRemoveMap(guild);
+	}
+
+	@EventSubscriber
+	public void onGuildUnavailableEvent(GuildUnavailableEvent event) {
+		IGuild guild = event.getGuild();
+		Logger.warn("Received GuildUnavailableEvent for guild {}", guild.getName());
+		stashChannelsAndRemoveMap(guild);
 	}
 
 	@EventSubscriber
@@ -107,7 +152,7 @@ public class PrivateBot extends Bot {
 
 		// delete if TempChannel exists
 		if (tempChannelToRemove != null) {
-			Logger.info("Removing TempChannel \"{}\" from map!", deletedChannel.getName());
+			Logger.info("Removing TempChannel {} from map!", deletedChannel.getName());
 
 			tempChannelMap.removeTempChannel(tempChannelToRemove);
 		}
@@ -179,7 +224,7 @@ public class PrivateBot extends Bot {
 			sendMessage("Sorry " + author + ", but you reached the personal channel limit of " + USER_CHANNEL_LIMIT
 					+ ". Use !cc to delete all of your empty temporary channels. "
 					+ "With the modifier -f you can force to delte all channels, even those who aren't empty!", channel, false);
-			Logger.info("User \"{}\" reached his channel limit. Channel wasn't created.", author.getName());
+			Logger.info("User {} reached his channel limit. Channel wasn't created.", author.getName());
 			return;
 		}
 
@@ -287,14 +332,14 @@ public class PrivateBot extends Bot {
 		for (Iterator<TempChannel> iterator = userChannels.iterator(); iterator.hasNext();) {
 			IVoiceChannel userChannel = iterator.next().getChannel();
 			if (userChannel.getConnectedUsers().isEmpty()) {
-				Logger.info("Deleting empty channel \"{}\"", userChannel.getName());
+				Logger.info("Deleting empty channel {}", userChannel.getName());
 				userChannel.delete();
 			} else {
 				if (forceDelete) {
-					Logger.info("Force-Deleting channel \"{}\"", userChannel.getName());
+					Logger.info("Force-Deleting channel {}", userChannel.getName());
 					userChannel.delete();
 				} else {
-					Logger.info("Channel \"{}\" isn't empty", userChannel.getName());
+					Logger.info("Channel {} isn't empty", userChannel.getName());
 					sendMessage = true;
 				}
 			}
@@ -434,7 +479,7 @@ public class PrivateBot extends Bot {
 
 		// create the new channel
 		IVoiceChannel channel = guild.createVoiceChannel(name);
-		Logger.info("Created channel: \"{}\"", channel.getName());
+		Logger.info("Created channel: {}", channel.getName());
 
 		// put channel to temp category
 		channel.changeCategory(getTempCategoryForGuild(guild));
@@ -562,42 +607,48 @@ public class PrivateBot extends Bot {
 
 		return "";
 	}
-	
+
 	/**
 	 * saves all current TempChannels to a file
 	 */
 	public void saveTempChannel() {
-		//create an ArrayList with Transfer Objects (TOs) for each TempChannel
+		// create an ArrayList with Transfer Objects (TOs) for each TempChannel
 		ArrayList<TempChannelTO> tempChannelTOs = new ArrayList<>();
-		for (TempChannelMap tempChannelMap : tempChannelsByGuild.values()) {
-			for (TempChannel tempChannel : tempChannelMap.getAllTempChannel()) {
-				TempChannelTO tempChannelTO = new TempChannelTO(tempChannel.getChannel().getLongID(), tempChannel.getOwner().getLongID(),  tempChannel.getTimeoutInMinutes(), tempChannel.getEmptyMinutes());
-				tempChannelTOs.add(tempChannelTO);
-			}
-		}
-		//save the ArrayList to a file
+
+		// for each tempChannel add a TempChannel TransferObject to the tempChannelTos ArrayList
+		tempChannelsByGuild.values().stream()
+				.forEach(T -> T.getAllTempChannel().stream().map(TempChannelTO::createFromTempChannel).forEachOrdered(tempChannelTOs::add));
+
+		// save the ArrayList to a file
+		writeObjectToFile(tempChannelTOs, path_serialized_tempChannels, file_name);
+		Logger.info("{} serialized TempChannels are saved.", tempChannelTOs.size());
+	}
+
+	private void writeObjectToFile(Object object, String path, String fileName) {
 		try {
-			FileOutputStream fileOut = new FileOutputStream("/tmp/tempChannels.ser");
+			String filePath = Paths.get(path, fileName).toString();
+			File file = new File(path);
+			if (!file.exists()) {
+				file.mkdirs();
+			}
+			FileOutputStream fileOut = new FileOutputStream(filePath);
 			ObjectOutputStream out = new ObjectOutputStream(fileOut);
-			out.writeObject(tempChannelTOs);
+			out.writeObject(object);
 			out.close();
 			fileOut.close();
-			Logger.info("Serialized TempChannels are saved.");
+			Logger.info("Serialized objects written to: \"{}\"", filePath);
 		} catch (IOException i) {
 			Logger.error(i);
-		}	
+		}
 	}
 
 	@SuppressWarnings("unchecked")
 	private void readTempChannelsFromFile() {
+		String pathToFile = Paths.get(path_serialized_tempChannels, file_name).toString();
 		try {
-			if (new File("/tmp/tempChannels.ser").exists()) {
+			if (new File(pathToFile).exists()) {
 				// read ArrayList of TempChannelTOs from file
-				FileInputStream fileIn = new FileInputStream("/tmp/tempChannels.ser");
-				ObjectInputStream in = new ObjectInputStream(fileIn);
-				ArrayList<TempChannelTO> tempChannelTOs = (ArrayList<TempChannelTO>) in.readObject();
-				in.close();
-				fileIn.close();
+				ArrayList<TempChannelTO> tempChannelTOs = (ArrayList<TempChannelTO>) readObjectFromFile(pathToFile);
 				Logger.info("Read {} serialized TempChannels", tempChannelTOs.size());
 				int importedCount = 0;
 				// create TempChannels from TOs
@@ -626,33 +677,82 @@ public class PrivateBot extends Bot {
 
 	}
 
-	private void removeUnkownChannels() {
-		// get TempCategory for each guild and remove VoiceChannels in the category which aren't in the TempChannelMap
-		Set<IGuild> guilds = tempChannelsByGuild.keySet();
-		for (IGuild guild : guilds) {
-			boolean textChannelInTempCategory = false;
-			ICategory tempCategory = getTempCategoryForGuild(guild);
-			if (tempCategory != null) {
-				for (IVoiceChannel channel : tempCategory.getVoiceChannels()) {
-					if (!tempChannelsByGuild.get(guild).isTempChannelForChannelExistentInMap(channel)) {
-						TempChannel tempChannel = new TempChannel(channel, getClient().getOurUser(), 0);
-						tempChannelsByGuild.get(guild).addTempChannel(tempChannel);
-						Logger.info("Creating 5min timeout TempChannel for unkown channel: \"{}\" in guild {}", channel.getName(), guild.getName());
-					}
-				}
-				for (IChannel channel : tempCategory.getChannels()) {
-					textChannelInTempCategory = true;
-					channel.delete();
-					Logger.info("Delted text channel \"{}\" in TempChannel category");
-				}
-				if (textChannelInTempCategory) {
-					sendMessage(
-							"Who the hell created TextChannel in the TempChannel category? Get your life fixed! I had to clean up this mess for you...",
-							guild.getDefaultChannel(), false);
+	private Object readObjectFromFile(String file) throws FileNotFoundException, IOException, ClassNotFoundException {
+		FileInputStream fileIn = new FileInputStream(file);
+		ObjectInputStream in = new ObjectInputStream(fileIn);
+		Object object = in.readObject();
+		in.close();
+		fileIn.close();
+		return object;
+	}
+	
+	private void removeUnknownChannelsForGuild(IGuild guild){
+		boolean textChannelInTempCategory = false;
+		ICategory tempCategory = getTempCategoryForGuild(guild);
+		if (tempCategory != null) {
+			for (IVoiceChannel channel : tempCategory.getVoiceChannels()) {
+				if (!tempChannelsByGuild.get(guild).isTempChannelForChannelExistentInMap(channel)) {
+					TempChannel tempChannel = new TempChannel(channel, getClient().getOurUser(), timeout_for_unknown_channels);
+					tempChannelsByGuild.get(guild).addTempChannel(tempChannel);
+					Logger.info("Created 5min timeout TempChannel for unkown channel: {} in guild {}", channel.getName(), guild.getName());
 				}
 			}
+			for (IChannel channel : tempCategory.getChannels()) {
+				textChannelInTempCategory = true;
+				channel.delete();
+				Logger.info("Deleted text channel {} in TempChannel category", channel.getName());
+			}
+			if (textChannelInTempCategory) {
+				sendMessage(
+						"Who the hell created a text channel in the TempChannel category? Get your life fixed! I had to clean up this mess for you...",
+						guild.getDefaultChannel(), false);
+			}
+		}
+	}
+
+	private void removeUnkownChannelsForGuild(Set<IGuild> guilds) {
+		// get TempCategory for each guild and remove VoiceChannels in the category which aren't in the TempChannelMap
+		for (IGuild guild : guilds) {
+			removeUnknownChannelsForGuild(guild);
 		}
 
 	}
+
+	/**
+	 * saves TempChannels in stash to reuse them incase the guild gets available again
+	 * 
+	 * @param guild
+	 *            guild for which the tempChannels should be stashed
+	 */
+	private void stashChannelsAndRemoveMap(IGuild guild) {
+		Logger.info("Stashing {} tempChannels from guild {}.", tempChannelsByGuild.get(guild).getAllTempChannel().size(), guild.getName());
+		stashedChannels.addAll(tempChannelsByGuild.get(guild).getAllTempChannel());
+		tempChannelsByGuild.remove(guild);
+	}
+
+	/**
+	 * imports the stashed tempChannels from the specified guild
+	 * 
+	 * @param guild
+	 *            the guild for which the stashed tempChannels should be imported
+	 */
+	private void importStashedChannelsForGuild(IGuild guild) {
+		List <IUser> users = guild.getUsers();
+		List <IVoiceChannel> channels = guild.getVoiceChannels();
+		Iterator<TempChannel> iterator = stashedChannels.parallelStream() //only import TempChannels
+				.filter(T -> T.getChannel().getGuild().equals(guild)) //if the guild is correct
+				.filter(T -> channels.contains(T.getChannel())) //if the channel still exists
+				.filter(T -> users.contains(T.getOwner())) //if the owner is still connected to the server
+				.iterator();
+		int importedCount = 0;
+		while (iterator.hasNext()) {
+			tempChannelsByGuild.get(guild).addTempChannel(iterator.next());
+			importedCount++;
+		}
+		
+		Logger.info("Imported {} stashed channels for guild {}", importedCount, guild.getName());
+	}
+	
+	
 
 }

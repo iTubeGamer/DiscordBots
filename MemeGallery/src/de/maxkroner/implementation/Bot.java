@@ -29,6 +29,27 @@ public abstract class Bot {
 		dispatcher.registerListener(this); // BaseBot implements IListener
 	}
 	
+	@EventSubscriber
+	public void onReady(ReadyEvent event) {
+		Bot bot = this;
+		bot_name = client.getOurUser().getName();
+		
+		new Thread() {
+			@Override
+			public void run() {
+				botMenue.startMenue(bot);
+			}
+		}.start();
+		System.out.println("Logged in as " + bot_name);
+		Logger.info("Logged in as " + bot_name);
+	}
+	
+	@EventSubscriber
+	protected void logout(DisconnectedEvent event) {
+		System.out.println("Logged out for reason " + event.getReason() + "!");
+		Logger.info("Logged out for reason " + event.getReason() + "!");
+	}
+	
 	public void changeName(String name){
 		try {
 			client.changeUsername(name);
@@ -87,27 +108,6 @@ public abstract class Bot {
 		MessageBuilder mb = new MessageBuilder(this.client).withChannel(recepient.getOrCreatePMChannel());
 		mb.withContent(message);
 		mb.build();
-	}
-
-	@EventSubscriber
-	public void onReady(ReadyEvent event) {
-		Bot bot = this;
-		bot_name = client.getOurUser().getName();
-		
-		new Thread() {
-			@Override
-			public void run() {
-				botMenue.startMenue(bot);
-			}
-		}.start();
-		System.out.println("Logged in as " + bot_name);
-		Logger.info("Logged in as " + bot_name);
-	}
-
-	@EventSubscriber
-	protected void logout(DisconnectedEvent event) {
-		System.out.println("Logged out for reason " + event.getReason() + "!");
-		Logger.info("Logged out for reason " + event.getReason() + "!");
 	}
 
 	public static IDiscordClient createClient(String token) {
