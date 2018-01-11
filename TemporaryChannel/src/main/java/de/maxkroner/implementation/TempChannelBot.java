@@ -43,6 +43,8 @@ import sx.blah.discord.handle.impl.events.guild.GuildLeaveEvent;
 import sx.blah.discord.handle.impl.events.guild.GuildUnavailableEvent;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelDeleteEvent;
+import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelJoinEvent;
+import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelMoveEvent;
 import sx.blah.discord.handle.impl.obj.User;
 import sx.blah.discord.handle.obj.ICategory;
 import sx.blah.discord.handle.obj.IChannel;
@@ -196,15 +198,26 @@ public class TempChannelBot extends Bot {
 		}
 	}
 
-	// not used, for better performance
-	/**
-	 * @EventSubscriber public void onUserVoiceChannelJoin(UserVoiceChannelJoinEvent event) { //updateChannelTimeout(event.getVoiceChannel()); }
-	 * 
-	 * @EventSubscriber public void onUserVoiceChannelMove(UserVoiceChannelMoveEvent event) { //updateChannelTimeout(event.getVoiceChannel()); }
-	 * 
-	 *                  private void updateChannelTimeout(IVoiceChannel voiceChannel) { for (TempChannel tempChannel : tempChannels) { if
-	 *                  (tempChannel.getChannel().equals(voiceChannel)) { tempChannel.setEmptyMinuts(0); } } }
-	 **/
+	
+	  @EventSubscriber public void onUserVoiceChannelJoin(UserVoiceChannelJoinEvent event) { 
+		  updateChannelTimeout(event.getVoiceChannel()); 
+	  }
+	  
+	  @EventSubscriber public void onUserVoiceChannelMove(UserVoiceChannelMoveEvent event) {
+		  updateChannelTimeout(event.getVoiceChannel()); 	  
+	  }
+	  
+	  private void updateChannelTimeout(IVoiceChannel voiceChannel) { 
+		 TempChannelMap tempChannelMap = tempChannelsByGuild.get(voiceChannel.getGuild());
+		 if(tempChannelMap != null){
+			 TempChannel tempChannel = tempChannelMap.getTempChannelForChannel(voiceChannel);
+			 if(tempChannel != null){
+				 tempChannel.setEmptyMinutes(0);
+				 Logger.info("User joined tempChannel {}, setting empty minutes to 0", voiceChannel.getName());
+			 }
+		 }
+	  }
+	 
 
 	// ----- MESSAGE PARSING ----- //
 	private void parseChannelCommand(List<Modifier> modifierList, MessageReceivedEvent event) {
