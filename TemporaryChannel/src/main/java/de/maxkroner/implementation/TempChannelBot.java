@@ -13,7 +13,6 @@ import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -29,12 +28,11 @@ import java.util.stream.Collectors;
 
 import org.pmw.tinylog.Logger;
 
-import de.maxkroner.parsing.Command;
-import de.maxkroner.parsing.MessageParsing;
-import de.maxkroner.implementation.Bot;
 import de.maxkroner.model.TempChannel;
 import de.maxkroner.model.TempChannelMap;
+import de.maxkroner.parsing.Command;
 import de.maxkroner.parsing.CommandOption;
+import de.maxkroner.parsing.MessageParsing;
 import de.maxkroner.to.TempChannelTO;
 import de.maxkroner.ui.TempChannelMenue;
 import de.maxkroner.ui.UserInput;
@@ -47,21 +45,17 @@ import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedE
 import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelDeleteEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelJoinEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelMoveEvent;
-import sx.blah.discord.handle.impl.obj.User;
 import sx.blah.discord.handle.obj.ICategory;
 import sx.blah.discord.handle.obj.IChannel;
-import sx.blah.discord.handle.obj.IDiscordObject;
 import sx.blah.discord.handle.obj.IEmoji;
 import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
 import sx.blah.discord.handle.obj.Permissions;
 import sx.blah.discord.util.MessageBuilder;
-import sx.blah.discord.util.MessageTokenizer;
-import sx.blah.discord.util.MessageTokenizer.MentionToken;
 
 public class TempChannelBot extends Bot {
-	private static final int timeout_for_unknown_channels = 5; 
+	private static final int timeout_for_unknown_channels = 5;
 	private static ArrayList<String> channelNames = new ArrayList<>();
 	private static HashMap<IGuild, TempChannelMap> tempChannelsByGuild = new HashMap<>();
 	private static ArrayList<TempChannel> stashedChannels = new ArrayList<>(); // if bot leaves Guild tempChannels get stashed
@@ -164,6 +158,14 @@ public class TempChannelBot extends Bot {
 
 	@EventSubscriber
 	public void onMessageReceivedEvent(MessageReceivedEvent event) {
+		if (event.getChannel().isPrivate()) {
+			sendMessage(
+					"Hey, I'd like to chat with you too, because you are very cute :smile: But unfortunately I am only a bot and therefore I am very akward with strangers...",
+					event.getChannel(), false);
+			sendMessage("But if you want to send me a command please do it in a server text channel, ok?", event.getChannel(), false);
+			return;
+		}
+
 		String message = event.getMessage().getContent();
 		Command command = MessageParsing.parseCommandFromMessage(message);
 
@@ -181,122 +183,109 @@ public class TempChannelBot extends Bot {
 			executeChannelClearCommand(command.getCommandOptions(), event);
 			break;
 		}
+
 	}
 
-	
-	  @EventSubscriber public void onUserVoiceChannelJoin(UserVoiceChannelJoinEvent event) { 
-		  updateChannelTimeout(event.getVoiceChannel()); 
-	  }
-	  
-	  @EventSubscriber public void onUserVoiceChannelMove(UserVoiceChannelMoveEvent event) {
-		  updateChannelTimeout(event.getVoiceChannel()); 	  
-	  }
-	  
-	  private void updateChannelTimeout(IVoiceChannel voiceChannel) { 
-		 TempChannelMap tempChannelMap = tempChannelsByGuild.get(voiceChannel.getGuild());
-		 if(tempChannelMap != null){
-			 TempChannel tempChannel = tempChannelMap.getTempChannelForChannel(voiceChannel);
-			 if(tempChannel != null){
-				 tempChannel.setEmptyMinutes(0);
-				 Logger.info("User joined tempChannel {}, setting empty minutes to 0", voiceChannel.getName());
-			 }
-		 }
-	  }
-	 
+	@EventSubscriber
+	public void onUserVoiceChannelJoin(UserVoiceChannelJoinEvent event) {
+		setEmptyMinutesToZero(event.getVoiceChannel());
+	}
+
+	@EventSubscriber
+	public void onUserVoiceChannelMove(UserVoiceChannelMoveEvent event) {
+		setEmptyMinutesToZero(event.getVoiceChannel());
+	}
 
 	// ----- MESSAGE PARSING ----- //
 	private void executeChannelCommand(List<CommandOption> commandOptions, MessageReceivedEvent event) {
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		IChannel channel = event.getChannel();
 		IUser author = event.getAuthor();
 		IGuild guild = event.getGuild();
-
-		// check if User is in voice channel of the guild
-		if (author.getVoiceStateForGuild(guild).getChannel() == null) {
-			sendMessage(author + " please join a voice channel before activating a channel command.", channel, false);
-			return;
-		}
-
-		// check if User-Channel-Count-Limit is reached
-		if (getUserChannelCountOnGuild(author, guild) >= USER_CHANNEL_LIMIT) {
-			sendMessage("Sorry " + author + ", but you reached the personal channel limit of " + USER_CHANNEL_LIMIT
-					+ ". Use !cc to delete all of your empty temporary channels. "
-					+ "With the option -f you can force to delte all channels, even those who aren't empty!", channel, false);
-			Logger.info("User {} reached his channel limit. Channel wasn't created.", author.getName());
-			return;
-		}
-
 		String name = getRandomName();
 		List<IUser> allowedUsers = null; // null = everyone allowed in the new channel
-		List<IUser> movePlayers = new ArrayList<IUser>();
+		List<IUser> movePlayers = new ArrayList<IUser>(); // players to move in the new channel
 		int limit = 0;
 		int timeout = 5;
 		boolean moveAllowedPlayers = false;
 
-		for (CommandOption option : commandOptions) {
+		List<String> errorMessages = new ArrayList<>();
 
-			switch (option.getCommandOptionName()) {
-			case "p":
-				allowedUsers = parsePrivateOption(option, event);
-				break;
-			case "m":
-				movePlayers = parseMoveOption(commandOptions, option, event, movePlayers);
-				if (movePlayers == null) {
-					moveAllowedPlayers = true;
-				}
-				break;
-			case "n":
-				if (option.getParameterList().length >= 1) {
-					name = "";
-					for (String parameter : option.getParameterList()) {
-						name = name + " " + parameter;
+		if (checkIfPrequisitesAreMet(channel, author, guild, errorMessages)) {
+			Logger.info("Parsing message: {}", event.getMessage().getContent());
+
+			for (CommandOption option : commandOptions) {
+
+				switch (option.getCommandOptionName()) {
+				case "p":
+					allowedUsers = MessageParsing.parsePrivateOption(option, event, errorMessages, getClient());
+					break;
+				case "m":
+					movePlayers = MessageParsing.parseMoveOption(commandOptions, option, event, movePlayers, errorMessages, getClient());
+					if (movePlayers == null) {
+						moveAllowedPlayers = true;
 					}
-
-					name = name.substring(1);
-
-				} else {
-					sendMessage("Please use the name-option(-n) with a parameter to specify the channel-name. (f.e. !c -n channel_title)", channel,
-							false);
+					break;
+				case "n":
+					name = MessageParsing.parseNameOption(channel, name, option, errorMessages);
+					break;
+				case "l":
+					limit = MessageParsing.parseLimitOption(channel, limit, option, errorMessages);
+					break;
+				case "t":
+					timeout = MessageParsing.parseTimoutOption(channel, timeout, option, errorMessages);
+					break;
 				}
-				break;
-			case "l":
-				if (option.getParameterList().length >= 1) {
-					int given_limit = Integer.parseInt(option.getParameterList()[0]);
-					if (given_limit >= 1 && given_limit <= 99) {
-						limit = given_limit;
-					} else {
-						sendMessage("Please use the user-limit-option (-l) with a parameter to specify the user-limit. (f.e. !c -l 5)", channel,
-								false);
-					}
-				} else {
-					sendMessage("Please use the user-limit-option (-l) with a parameter to specify the user-limit. (f.e. !c -l 5)", channel, false);
-				}
-				break;
-			case "t":
-				if (option.getParameterList().length >= 1) {
-					int given_timeout = Integer.parseInt(option.getParameterList()[0]);
-					if (given_timeout >= 1 && given_timeout <= 180) {
-						timeout = given_timeout;
-					} else {
-						sendMessage("Please use the timout-option (-t) only with a parameter between 1-180 minutes (f.e. !c -t 5)", channel, false);
-					}
-				} else {
-					sendMessage("Please use the timout-option (-t) only with a parameter between 1-180 (f.e. !c -t 5)", channel, false);
-				}
+			}
 
-				break;
+			// if all the players that are allowed in the channel (-p) should be moved, add them to the move list
+			if (moveAllowedPlayers) {
+				movePlayers = new ArrayList<IUser>();
+				movePlayers.addAll(allowedUsers);
+				movePlayers.add(author);
 			}
 		}
 
-		// if all the players that are allowed in the channel (-p) should be moved, add them to the move list
-		if (moveAllowedPlayers) {
-			movePlayers = new ArrayList<IUser>();
-			movePlayers.addAll(allowedUsers);
-			movePlayers.add(author);
+		if (errorMessages.isEmpty()) {
+			createChannel(event, name, allowedUsers, movePlayers, limit, timeout);
+		} else {
+			sendErrorMessages(channel, author, errorMessages);
+		}
+	}
+
+	private void sendErrorMessages(IChannel channel, IUser author, List<String> errorMessages) {
+		if (errorMessages.size() == 1) {
+			sendMessage("Ey " + author + ": " + errorMessages.get(0), channel, false);
+		} else {
+			sendMessage("Ey " + author + ", there was something wrong with your channel command. Look in private chat for further information.",
+					channel, false);
+			MessageBuilder mb = new MessageBuilder(getClient()).withChannel(author.getOrCreatePMChannel());
+			mb.appendContent("There were some things wrong with you channel command:\n");
+			for (String errMessage : errorMessages) {
+				mb.appendContent(errMessage);
+				mb.appendContent("\n");
+			}
+			mb.build();
+		}
+	}
+
+	private boolean checkIfPrequisitesAreMet(IChannel channel, IUser author, IGuild guild, List<String> errorMessages) {
+		// check if User is in voice channel of the guild
+		if (author.getVoiceStateForGuild(guild).getChannel() == null) {
+			errorMessages.add("Please join a voice channel before activating a channel command.");
+			Logger.info("Received channel command, but user wasn't in a voiceChannel");
+			return false;
 		}
 
-		createChannel(event, name, allowedUsers, movePlayers, limit, timeout);
+		// check if User-Channel-Count-Limit is reached
+		if (getUserChannelCountOnGuild(author, guild) >= USER_CHANNEL_LIMIT) {
+			errorMessages.add(
+					"You reached the personal channel limit of " + USER_CHANNEL_LIMIT + ". Use !cc to delete all of your empty temporary channels. "
+							+ "With the option -f you can force to delete all channels, even those who aren't empty!");
+			Logger.info("Received channel command, but user has already reached his channel limit");
+			return false;
+		}
 
+		return true;
 	}
 
 	private void executeChannelClearCommand(List<CommandOption> options, MessageReceivedEvent event) {
@@ -358,104 +347,6 @@ public class TempChannelBot extends Bot {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		sendMessage("Ban available soon!", event.getChannel(), false);
 	}
-
-	private List<IUser> parseMoveOption(List<CommandOption> options, CommandOption option, MessageReceivedEvent event, List<IUser> movePlayers) {
-
-		boolean privateOptionUsed = optionListContainsOptionString("p", options);
-		if (option.getParameterList().length > 0 && privateOptionUsed) {
-			sendMessage(
-					"Tip: If you create a private channel with -p and you don't mention users behind -m, all users you mentioned behind -p will be moved automatically.",
-					event.getChannel(), false);
-		} else if (option.getParameterList().length == 0 && privateOptionUsed) {
-			return null;
-		}
-
-		// all users in current channel should be moved
-		if (option.getParameterList()[0].equals("all")) {
-			if ((event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers() != null)) {
-				movePlayers = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers();
-			}
-		} else {
-			// users mentioned by name
-			parseUserList(option, event, movePlayers, "-m");
-		}
-
-		return movePlayers;
-	}
-
-	private List<IUser> parsePrivateOption(CommandOption option, MessageReceivedEvent event) {
-		// no users mentioned = no private channel
-		if (option.getParameterList().length <= 0) {
-			sendMessage(
-					"You need to specify the users who may join your private channel, when using the private-option -p. (f.e. !c -p @user1 @user2",
-					event.getChannel(), false);
-			return null;
-		}
-
-		List<IUser> allowedUsers = new ArrayList<>();
-
-		// all users in current channel allowed
-		if (option.getParameterList()[0].equals("all")) {
-			allowedUsers = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers();
-			if (allowedUsers.isEmpty()) {
-				allowedUsers = null; // none of the mentioned users were
-										// recognized -> channel will not be
-										// private
-			}
-			return allowedUsers;
-		}
-
-		// users mentioned by name
-		parseUserList(option, event, allowedUsers, "-p");
-		return allowedUsers;
-	}
-
-	private void parseUserList(CommandOption option, MessageReceivedEvent event, List<IUser> userList, String optionString) {
-		List<String> notFound = new ArrayList<>();
-		for (String parameter : option.getParameterList()) {
-			parseUserParameter(event.getGuild(), userList, notFound, parameter);
-		}
-
-		if (notFound.size() == option.getParameterList().length) {
-			sendMessage("All the user's mentioned behind the option " + optionString + " we're not recognized.", event.getChannel(), false);
-			return;
-		} else if (!notFound.isEmpty()) {
-			String not_found = "";
-			for (String username : notFound) {
-				not_found = not_found + username + ", ";
-			}
-
-			not_found = not_found.substring(0, not_found.length() - 2);
-
-			sendMessage("The following Usernames were not found: " + not_found, event.getChannel(), false);
-		}
-	}
-
-	private void parseUserParameter(IGuild guild, List<IUser> allowedUsers, List<String> notFound, String parameter) {
-		// user mentioned by snowflake-ID
-		IUser user;
-		MessageTokenizer mt = new MessageTokenizer(getClient(), parameter);
-		if (mt.hasNextMention()) {
-			@SuppressWarnings({ "rawtypes", "unchecked" })
-			MentionToken<IDiscordObject> nextMention = mt.nextMention();
-			if (nextMention.getMentionObject().getClass() == User.class) {
-				user = (IUser) nextMention.getMentionObject();
-				allowedUsers.add(user);
-				return;
-			}
-		}
-
-		// user mentioned by User/-Nickname
-		List<IUser> usersByParameter = guild.getUsersByName(parameter, true);
-		if (!usersByParameter.isEmpty()) {
-			allowedUsers.addAll(usersByParameter);
-			return;
-		}
-
-		notFound.add(parameter);
-	}
-
-	
 
 	// ----- EXCECUTING METHODS ----- //
 	private void createChannel(MessageReceivedEvent event, String name, List<IUser> allowedUsers, List<IUser> movePlayers, int limit, int timeout) {
@@ -573,16 +464,6 @@ public class TempChannelBot extends Bot {
 		return channelNames.get(index);
 	}
 
-	private boolean optionListContainsOptionString(String optionString, List<CommandOption> options) {
-		for (CommandOption option : options) {
-			if (option.getCommandOptionName().equals(optionString)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	private String getRandomChannelEmoji(IGuild guild) {
 		List<IEmoji> channelEmojis = guild.getEmojis();
 		if (!channelEmojis.isEmpty()) {
@@ -670,8 +551,8 @@ public class TempChannelBot extends Bot {
 		fileIn.close();
 		return object;
 	}
-	
-	private void removeUnknownChannelsForGuild(IGuild guild){
+
+	private void removeUnknownChannelsForGuild(IGuild guild) {
 		boolean textChannelInTempCategory = false;
 		ICategory tempCategory = getTempCategoryForGuild(guild);
 		if (tempCategory != null) {
@@ -722,22 +603,31 @@ public class TempChannelBot extends Bot {
 	 *            the guild for which the stashed tempChannels should be imported
 	 */
 	private void importStashedChannelsForGuild(IGuild guild) {
-		List <IUser> users = guild.getUsers();
-		List <IVoiceChannel> channels = guild.getVoiceChannels();
-		Iterator<TempChannel> iterator = stashedChannels.parallelStream() //only import TempChannels
-				.filter(T -> T.getChannel().getGuild().equals(guild)) //if the guild is correct
-				.filter(T -> channels.contains(T.getChannel())) //if the channel still exists
-				.filter(T -> users.contains(T.getOwner())) //if the owner is still connected to the server
+		List<IUser> users = guild.getUsers();
+		List<IVoiceChannel> channels = guild.getVoiceChannels();
+		Iterator<TempChannel> iterator = stashedChannels.parallelStream() // only import TempChannels
+				.filter(T -> T.getChannel().getGuild().equals(guild)) // if the guild is correct
+				.filter(T -> channels.contains(T.getChannel())) // if the channel still exists
+				.filter(T -> users.contains(T.getOwner())) // if the owner is still connected to the server
 				.iterator();
 		int importedCount = 0;
 		while (iterator.hasNext()) {
 			tempChannelsByGuild.get(guild).addTempChannel(iterator.next());
 			importedCount++;
 		}
-		
+
 		Logger.info("Imported {} stashed channels for guild {}", importedCount, guild.getName());
 	}
-	
-	
+
+	private void setEmptyMinutesToZero(IVoiceChannel voiceChannel) {
+		TempChannelMap tempChannelMap = tempChannelsByGuild.get(voiceChannel.getGuild());
+		if (tempChannelMap != null) {
+			TempChannel tempChannel = tempChannelMap.getTempChannelForChannel(voiceChannel);
+			if (tempChannel != null) {
+				tempChannel.setEmptyMinutes(0);
+				Logger.info("User joined tempChannel {}, setting empty minutes to 0", voiceChannel.getName());
+			}
+		}
+	}
 
 }
