@@ -248,21 +248,23 @@ public class TempChannelBot extends Bot {
 		if (errorMessages.isEmpty()) {
 			createChannel(event, name, allowedUsers, movePlayers, limit, timeout);
 		} else {
-			sendErrorMessages(channel, author, errorMessages);
+			sendErrorMessages(channel, author, errorMessages, event.getMessage().getContent());
 		}
 	}
 
-	private void sendErrorMessages(IChannel channel, IUser author, List<String> errorMessages) {
+	private void sendErrorMessages(IChannel channel, IUser author, List<String> errorMessages, String originalMessage) {
 		if (errorMessages.size() == 1) {
 			sendMessage("Ey " + author + ": " + errorMessages.get(0), channel, false);
 		} else {
 			sendMessage("Ey " + author + ", there was something wrong with your channel command. Look in private chat for further information.",
 					channel, false);
 			MessageBuilder mb = new MessageBuilder(getClient()).withChannel(author.getOrCreatePMChannel());
-			mb.appendContent("There were some things wrong with you channel command:\n");
+			mb.appendContent("There were some things wrong with your channel command: \"" + originalMessage + "\"\n");
+			int count = 1;
 			for (String errMessage : errorMessages) {
-				mb.appendContent(errMessage);
+				mb.appendContent("\t" + count + ". " + errMessage);
 				mb.appendContent("\n");
+				count++;
 			}
 			mb.build();
 		}
@@ -520,15 +522,17 @@ public class TempChannelBot extends Bot {
 				// create TempChannels from TOs
 				for (TempChannelTO to : tempChannelTOs) {
 					IVoiceChannel voiceChannel = getClient().getVoiceChannelByID(to.getChannelSnowflakeID());
-					IGuild guild = voiceChannel.getGuild();
-					IUser user = guild.getUserByID(to.getOwnerSnowflakeID());
-					if ((voiceChannel != null) && !voiceChannel.isDeleted() // if channel still exists
-							&& (user != null) // if owner is still in guild
-							&& tempChannelsByGuild.containsKey(guild)) { // and bot is still connected to guild
-						TempChannel tempChannel = new TempChannel(voiceChannel, user, to.getTimeoutInMinutes(), to.getEmptyMinutes());
-						tempChannelsByGuild.get(guild).addTempChannel(tempChannel);
-						importedCount++;
+					if((voiceChannel != null) && !voiceChannel.isDeleted()){// if channel still exists
+						IGuild guild = voiceChannel.getGuild();
+						IUser user = guild.getUserByID(to.getOwnerSnowflakeID());
+						if ((user != null) // if owner is still in guild
+								&& tempChannelsByGuild.containsKey(guild)) { // and bot is still connected to guild
+							TempChannel tempChannel = new TempChannel(voiceChannel, user, to.getTimeoutInMinutes(), to.getEmptyMinutes());
+							tempChannelsByGuild.get(guild).addTempChannel(tempChannel);
+							importedCount++;
+						}
 					}
+					
 				}
 				Logger.info("Importet {} from the {} serialized TempChannels", importedCount, tempChannelTOs.size());
 

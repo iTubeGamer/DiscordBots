@@ -65,7 +65,7 @@ public class MessageParsing {
 		// no users mentioned = no private channel
 		if (option.getParameterList().length <= 0) {
 			errorMessages.add(
-					"You need to specify the users who may join your private channel, when using the private-option `-p`. (f.e. `!c -p @user1 @user2`)");
+					"You need to specify the users who may join your private channel, when using the private-option: `!c -p @user1 @user2`");
 			return null;
 		}
 
@@ -182,7 +182,7 @@ public class MessageParsing {
 			name = name.substring(1);
 
 		} else {
-			errorMessages.add("The name-option `-n` has to be used with a parameter to specify the channel-name. (f.e. `!c -n channel_title`)");
+			errorMessages.add("The name-option `-n` has to be used with a parameter to specify the channel-name: `!c -n channel_title`");
 		}
 		return name;
 	}
@@ -193,10 +193,10 @@ public class MessageParsing {
 			if (given_limit >= 1 && given_limit <= 99) {
 				limit = given_limit;
 			} else {
-				errorMessages.add("The user-limit-option `-l` has to be used with a limit between 1 and 99 are allowed. (f.e. `!c -l 5`)");
+				errorMessages.add("The user-limit-option `-l` has to be used with a limit between 1 and 99: `!c -l 5`");
 			}
 		} else {
-			errorMessages.add("The user-limit-option `-l` has to be used with a limit between 1 and 99 are allowed. (f.e. `!c -l 5`)");
+			errorMessages.add("The user-limit-option `-l` has to be used with a limit between 1 and 99: `!c -l 5`");
 		}
 		return limit;
 	}
@@ -207,10 +207,10 @@ public class MessageParsing {
 			if (given_timeout >= 1 && given_timeout <= 180) {
 				timeout = given_timeout;
 			} else {
-				errorMessages.add("The timeout-option `-t` has to be used with a timeout between 1-180 (f.e. `!c -t 5`)");
+				errorMessages.add("The timeout-option `-t` has to be used with a timeout between 1-180: `!c -t 5`");
 			}
 		} else {
-			errorMessages.add("The timeout-option `-t` has to be used with a timeout between 1-180 (f.e. `!c -t 5`)");
+			errorMessages.add("The timeout-option `-t` has to be used with a timeout between 1-180: `!c -t 5`");
 		}
 		return timeout;
 	}
