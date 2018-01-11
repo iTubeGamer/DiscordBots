@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
 
+import org.pmw.tinylog.Logger;
+
 import de.maxkroner.implementation.Bot;
 import de.maxkroner.model.TempChannel;
 import de.maxkroner.model.TempChannelMap;
@@ -17,10 +19,10 @@ import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
 
-public class PrivateBotMenue extends BotMenue {
+public class TempChannelMenue extends BotMenue {
 	private HashMap<IGuild, TempChannelMap> tempChannelsByGuild;
 
-	public PrivateBotMenue(Scanner scanner, UserInput userInput,
+	public TempChannelMenue(Scanner scanner, UserInput userInput,
 			HashMap<IGuild, TempChannelMap> tempChannelsByGuild) {
 		super(scanner, userInput);
 		this.tempChannelsByGuild = tempChannelsByGuild;
@@ -49,7 +51,7 @@ public class PrivateBotMenue extends BotMenue {
 				break;
 			case 4:
 				if (userInput.getYesNoResult("Are you sure?")) {
-					bot.disconnect();
+					Logger.info("|||---SHUTTING DOWN---|||");
 					System.exit(0);
 				} else {
 					auswahl = 1;

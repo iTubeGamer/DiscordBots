@@ -34,7 +34,7 @@ import de.maxkroner.model.TempChannel;
 import de.maxkroner.model.TempChannelMap;
 import de.maxkroner.parsing.Modifier;
 import de.maxkroner.to.TempChannelTO;
-import de.maxkroner.ui.PrivateBotMenue;
+import de.maxkroner.ui.TempChannelMenue;
 import de.maxkroner.ui.UserInput;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
@@ -74,7 +74,7 @@ public class TempChannelBot extends Bot {
 	}
 
 	public TempChannelBot(String token, Scanner scanner, UserInput userInput) {
-		super(token, new PrivateBotMenue(scanner, userInput, tempChannelsByGuild));
+		super(token, new TempChannelMenue(scanner, userInput, tempChannelsByGuild));
 		home = System.getProperty("user.home");
 		path_serialized_tempChannels = Paths.get(home, "discordBots", "tempChannels", "tmp").toString();
 	}
@@ -82,7 +82,6 @@ public class TempChannelBot extends Bot {
 	@Override
 	public void disconnect() {
 		saveTempChannel();
-		super.disconnect();
 	}
 
 	// ----- EVENT HANDLING ----- //

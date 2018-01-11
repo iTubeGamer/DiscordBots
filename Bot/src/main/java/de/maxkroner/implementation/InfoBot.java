@@ -61,6 +61,11 @@ public class InfoBot extends Bot {
 		}	
 	}
 
+	@Override
+	public void disconnect() {
+		
+	}
+
 
 
 

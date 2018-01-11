@@ -1,7 +1,5 @@
 package de.maxkroner.main;
 
-import org.pmw.tinylog.Logger;
-
 import de.maxkroner.implementation.Bot;
 
 public class ShutdownHook extends Thread{
@@ -14,7 +12,6 @@ public class ShutdownHook extends Thread{
 
 	@Override
 	public void run() {
-		Logger.info("Shutdown Hook started");
 		bot.disconnect();
 	}
 }

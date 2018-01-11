@@ -78,7 +78,6 @@ public class JokeBot extends Bot {
 	}
 	
 	public void disconnect(){
-		super.disconnect();
 		jokeDatabase.close();
 	}
 }

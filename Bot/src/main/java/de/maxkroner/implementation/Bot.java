@@ -19,15 +19,20 @@ public abstract class Bot {
 	private String bot_name = "";
 	protected BotMenue botMenue;
 
-	private IDiscordClient client; // The instance of the discord client.
+	private IDiscordClient client;
+	
+	public IDiscordClient getClient() {
+		return this.client;
+	}
 
 	public Bot(String token, BotMenue botMenue) {
 		Logger.info("|||---STARTING UP ---|||");
 		this.client = createClient(token);
 		this.botMenue = botMenue;
 		EventDispatcher dispatcher = client.getDispatcher();
-		dispatcher.registerListener(this); // BaseBot implements IListener
+		dispatcher.registerListener(this); 
 	}
+
 	
 	@EventSubscriber
 	public void onReady(ReadyEvent event) {
@@ -83,18 +88,7 @@ public abstract class Bot {
 		}
 	}
 	
-	public void disconnect(){
-		try {
-			Logger.info("|||---SHUTTING DOWN---|||");
-			client.logout();	
-		} catch (DiscordException e) {
-			Logger.error(e);
-		}
-	}
-
-	public IDiscordClient getClient() {
-		return this.client;
-	}
+	public abstract void disconnect();
 	
 	protected void sendMessage(String message, IChannel channel, Boolean tts) {
 		MessageBuilder mb = new MessageBuilder(this.client).withChannel(channel);
@@ -112,10 +106,10 @@ public abstract class Bot {
 
 	public static IDiscordClient createClient(String token) {
 		ClientBuilder clientBuilder = new ClientBuilder();
-		clientBuilder.withToken(token); // Adds the login info to the builder
+		clientBuilder.withToken(token);
 		try {
-			return clientBuilder.login(); // Creates the client instance and
-											// logs the client in
+			return clientBuilder.login();
+											
 		} catch (DiscordException e) {
 			Logger.error(e);
 			return null;
