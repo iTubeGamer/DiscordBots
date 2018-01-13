@@ -28,11 +28,15 @@ import java.util.stream.Collectors;
 
 import org.pmw.tinylog.Logger;
 
+import com.google.common.collect.ImmutableSet;
+
 import de.maxkroner.model.TempChannel;
 import de.maxkroner.model.TempChannelMap;
 import de.maxkroner.parsing.Command;
+import de.maxkroner.parsing.CommandHandler;
 import de.maxkroner.parsing.CommandOption;
-import de.maxkroner.parsing.MessageParsing;
+import de.maxkroner.parsing.CommandSet;
+import de.maxkroner.parsing.OptionParsing;
 import de.maxkroner.to.TempChannelTO;
 import de.maxkroner.ui.TempChannelMenue;
 import de.maxkroner.ui.UserInput;
@@ -75,6 +79,8 @@ public class TempChannelBot extends Bot {
 		super(token, new TempChannelMenue(scanner, userInput, tempChannelsByGuild));
 		home = System.getProperty("user.home");
 		path_serialized_tempChannels = Paths.get(home, "discordBots", "tempChannels", "tmp").toString();
+		ImmutableSet<String> commands = ImmutableSet.of("c", "cc", "kick", "ban");
+		addCommandParsing(new CommandSet(commands), this.getClass());
 	}
 
 	@Override
@@ -158,31 +164,16 @@ public class TempChannelBot extends Bot {
 
 	@EventSubscriber
 	public void onMessageReceivedEvent(MessageReceivedEvent event) {
-		if (event.getChannel().isPrivate()) {
+
+		if (!event.getChannel().isPrivate()) {
+			super.onMessageReceivedEvent(event);
+		} else {
 			sendMessage(
 					"Hey, I'd like to chat with you too, because you are very cute :smile: But unfortunately I am only a bot and therefore I am very akward with strangers...",
 					event.getChannel(), false);
 			sendMessage("But if you want to send me a command please do it in a server text channel, ok?", event.getChannel(), false);
 			return;
-		}
-
-		String message = event.getMessage().getContent();
-		Command command = MessageParsing.parseCommandFromMessage(message);
-
-		switch (command.getName()) {
-		case "!c":
-			executeChannelCommand(command.getCommandOptions(), event);
-			break;
-		case "!kick":
-			executeKickCommand(command.getCommandOptions(), event);
-			break;
-		case "!ban":
-			executeBanCommand(command.getCommandOptions(), event);
-			break;
-		case "!cc":
-			executeChannelClearCommand(command.getCommandOptions(), event);
-			break;
-		}
+		}	
 
 	}
 
@@ -196,8 +187,10 @@ public class TempChannelBot extends Bot {
 		setEmptyMinutesToZero(event.getVoiceChannel());
 	}
 
-	// ----- MESSAGE PARSING ----- //
-	private void executeChannelCommand(List<CommandOption> commandOptions, MessageReceivedEvent event) {
+	// ----- COMMAND HANDLING ----- //
+	
+	@CommandHandler("c")
+	protected void executeChannelCommand(MessageReceivedEvent event, Command command) {
 		IChannel channel = event.getChannel();
 		IUser author = event.getAuthor();
 		IGuild guild = event.getGuild();
@@ -213,26 +206,26 @@ public class TempChannelBot extends Bot {
 		if (checkIfPrequisitesAreMet(channel, author, guild, errorMessages)) {
 			Logger.info("Parsing message: {}", event.getMessage().getContent());
 
-			for (CommandOption option : commandOptions) {
+			for (CommandOption option : command.getCommandOptions()) {
 
 				switch (option.getCommandOptionName()) {
 				case "p":
-					allowedUsers = MessageParsing.parsePrivateOption(option, event, errorMessages, getClient());
+					allowedUsers = OptionParsing.parsePrivateOption(option, event, errorMessages, getClient());
 					break;
 				case "m":
-					movePlayers = MessageParsing.parseMoveOption(commandOptions, option, event, movePlayers, errorMessages, getClient());
+					movePlayers = OptionParsing.parseMoveOption(command.getCommandOptions(), option, event, movePlayers, errorMessages, getClient());
 					if (movePlayers == null) {
 						moveAllowedPlayers = true;
 					}
 					break;
 				case "n":
-					name = MessageParsing.parseNameOption(channel, name, option, errorMessages);
+					name = OptionParsing.parseNameOption(channel, name, option, errorMessages);
 					break;
 				case "l":
-					limit = MessageParsing.parseLimitOption(channel, limit, option, errorMessages);
+					limit = OptionParsing.parseLimitOption(channel, limit, option, errorMessages);
 					break;
 				case "t":
-					timeout = MessageParsing.parseTimoutOption(channel, timeout, option, errorMessages);
+					timeout = OptionParsing.parseTimoutOption(channel, timeout, option, errorMessages);
 					break;
 				}
 			}
@@ -252,45 +245,8 @@ public class TempChannelBot extends Bot {
 		}
 	}
 
-	private void sendErrorMessages(IChannel channel, IUser author, List<String> errorMessages, String originalMessage) {
-		if (errorMessages.size() == 1) {
-			sendMessage("Ey " + author + ": " + errorMessages.get(0), channel, false);
-		} else {
-			sendMessage("Ey " + author + ", there was something wrong with your channel command. Look in private chat for further information.",
-					channel, false);
-			MessageBuilder mb = new MessageBuilder(getClient()).withChannel(author.getOrCreatePMChannel());
-			mb.appendContent("There were some things wrong with your channel command: \"" + originalMessage + "\"\n");
-			int count = 1;
-			for (String errMessage : errorMessages) {
-				mb.appendContent("\t" + count + ". " + errMessage);
-				mb.appendContent("\n");
-				count++;
-			}
-			mb.build();
-		}
-	}
-
-	private boolean checkIfPrequisitesAreMet(IChannel channel, IUser author, IGuild guild, List<String> errorMessages) {
-		// check if User is in voice channel of the guild
-		if (author.getVoiceStateForGuild(guild).getChannel() == null) {
-			errorMessages.add("Please join a voice channel before activating a channel command.");
-			Logger.info("Received channel command, but user wasn't in a voiceChannel");
-			return false;
-		}
-
-		// check if User-Channel-Count-Limit is reached
-		if (getUserChannelCountOnGuild(author, guild) >= USER_CHANNEL_LIMIT) {
-			errorMessages.add(
-					"You reached the personal channel limit of " + USER_CHANNEL_LIMIT + ". Use !cc to delete all of your empty temporary channels. "
-							+ "With the option -f you can force to delete all channels, even those who aren't empty!");
-			Logger.info("Received channel command, but user has already reached his channel limit");
-			return false;
-		}
-
-		return true;
-	}
-
-	private void executeChannelClearCommand(List<CommandOption> options, MessageReceivedEvent event) {
+	@CommandHandler("cc")
+	protected void executeChannelClearCommand(MessageReceivedEvent event, Command command) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		IGuild guild = event.getGuild();
 		IUser author = event.getAuthor();
@@ -308,7 +264,7 @@ public class TempChannelBot extends Bot {
 
 		// parse option -f
 		boolean forceDelete = false;
-		for (CommandOption option : options) {
+		for (CommandOption option : command.getCommandOptions()) {
 			switch (option.getCommandOptionName()) {
 			case "f":
 				forceDelete = true;
@@ -340,12 +296,14 @@ public class TempChannelBot extends Bot {
 
 	}
 
-	private void executeKickCommand(List<CommandOption> options, MessageReceivedEvent event) {
+	@CommandHandler("kick")
+	protected void executeKickCommand(MessageReceivedEvent event, Command command) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		sendMessage("Kick available soon!", event.getChannel(), false);
 	}
 
-	private void executeBanCommand(List<CommandOption> options, MessageReceivedEvent event) {
+	@CommandHandler("ban")
+	protected void executeBanCommand(MessageReceivedEvent event, Command command) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		sendMessage("Ban available soon!", event.getChannel(), false);
 	}
@@ -489,7 +447,8 @@ public class TempChannelBot extends Bot {
 
 		// save the ArrayList to a file
 		writeObjectToFile(tempChannelTOs, path_serialized_tempChannels, file_name);
-		Logger.info("{} serialized TempChannels are saved.", tempChannelTOs.size());
+		//TODO find out how to log after shutdown-hook was called
+		//Logger.info("{} serialized TempChannels are saved.", tempChannelTOs.size()); 
 	}
 
 	private void writeObjectToFile(Object object, String path, String fileName) {
@@ -504,7 +463,8 @@ public class TempChannelBot extends Bot {
 			out.writeObject(object);
 			out.close();
 			fileOut.close();
-			Logger.info("Serialized objects written to: \"{}\"", filePath);
+			//TODO fix
+			//Logger.info("Serialized objects written to: \"{}\"", filePath);
 		} catch (IOException i) {
 			Logger.error(i);
 		}
@@ -632,6 +592,44 @@ public class TempChannelBot extends Bot {
 				Logger.info("User joined tempChannel {}, setting empty minutes to 0", voiceChannel.getName());
 			}
 		}
+	}
+	
+	private void sendErrorMessages(IChannel channel, IUser author, List<String> errorMessages, String originalMessage) {
+		if (errorMessages.size() == 1) {
+			sendMessage("Ey " + author + ": " + errorMessages.get(0), channel, false);
+		} else {
+			sendMessage("Ey " + author + ", there was something wrong with your channel command. Look in private chat for further information.",
+					channel, false);
+			MessageBuilder mb = new MessageBuilder(getClient()).withChannel(author.getOrCreatePMChannel());
+			mb.appendContent("There were some things wrong with your channel command: \"" + originalMessage + "\"\n");
+			int count = 1;
+			for (String errMessage : errorMessages) {
+				mb.appendContent("\t" + count + ". " + errMessage);
+				mb.appendContent("\n");
+				count++;
+			}
+			mb.build();
+		}
+	}
+
+	private boolean checkIfPrequisitesAreMet(IChannel channel, IUser author, IGuild guild, List<String> errorMessages) {
+		// check if User is in voice channel of the guild
+		if (author.getVoiceStateForGuild(guild).getChannel() == null) {
+			errorMessages.add("Please join a voice channel before activating a channel command.");
+			Logger.info("Received channel command, but user wasn't in a voiceChannel");
+			return false;
+		}
+
+		// check if User-Channel-Count-Limit is reached
+		if (getUserChannelCountOnGuild(author, guild) >= USER_CHANNEL_LIMIT) {
+			errorMessages.add(
+					"You reached the personal channel limit of " + USER_CHANNEL_LIMIT + ". Use !cc to delete all of your empty temporary channels. "
+							+ "With the option -f you can force to delete all channels, even those who aren't empty!");
+			Logger.info("Received channel command, but user has already reached his channel limit");
+			return false;
+		}
+
+		return true;
 	}
 
 }

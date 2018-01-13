@@ -1,13 +1,23 @@
 package de.maxkroner.implementation;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.HashSet;
+
 import org.pmw.tinylog.Logger;
 
+import de.maxkroner.parsing.CommandSet;
+import de.maxkroner.parsing.MessageParsing;
 import de.maxkroner.ui.BotMenue;
+import de.maxkroner.parsing.Command;
+import de.maxkroner.parsing.CommandHandler;
 import sx.blah.discord.api.ClientBuilder;
 import sx.blah.discord.api.IDiscordClient;
 import sx.blah.discord.api.events.EventDispatcher;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
+import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.impl.events.shard.DisconnectedEvent;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
@@ -18,8 +28,9 @@ import sx.blah.discord.util.MessageBuilder;
 public abstract class Bot {
 	private String bot_name = "";
 	protected BotMenue botMenue;
-
 	private IDiscordClient client;
+	private CommandSet commandSet = null;
+	private HashMap<String, HashSet<Method>> commandMethodsMap;
 	
 	public IDiscordClient getClient() {
 		return this.client;
@@ -55,6 +66,16 @@ public abstract class Bot {
 		Logger.info("Logged out for reason " + event.getReason() + "!");
 	}
 	
+	@EventSubscriber
+	public void onMessageReceivedEvent(MessageReceivedEvent event) {
+		if(commandSet != null){
+			Command command = MessageParsing.parseMessageWithCommandSet(event.getMessage().getContent(), commandSet);
+			if(command != null){
+				notifyReceivers(event, command);
+			}
+		}
+	}
+
 	public void changeName(String name){
 		try {
 			client.changeUsername(name);
@@ -114,6 +135,46 @@ public abstract class Bot {
 			Logger.error(e);
 			return null;
 		}
+	}
+	
+	//---Message Parsing Event System---//
+	protected void addCommandParsing(CommandSet commandSet, Class<? extends Bot> botClass){
+		this.commandSet = commandSet;
+		createCommandMethodsMap(botClass);
+	}
+
+	private void createCommandMethodsMap(Class<? extends Bot> botClass) {
+		commandMethodsMap = new HashMap<>();
+		Method[] methods = botClass.getDeclaredMethods();
+		for(final Method method: methods){
+			if(method.isAnnotationPresent(CommandHandler.class)){
+				CommandHandler annotation = method.getAnnotation(CommandHandler.class);
+				String[] commands = annotation.value();
+				if(commands.length >= 1){
+					for(String command : commands){
+						addMethodForCommandToMap(command, method);
+					}
+				}
+			}
+		}
+	}
+
+	private void addMethodForCommandToMap(String command, Method method) {
+		if(!commandMethodsMap.containsKey(command)){
+			commandMethodsMap.put(command, new HashSet<Method>());
+		}		
+		commandMethodsMap.get(command).add(method);	
+	}
+	
+	private void notifyReceivers(MessageReceivedEvent event, Command command) {
+		for(Method method: commandMethodsMap.get(command.getName())){
+			try {
+				method.invoke(this, event, command);
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		}
+		
 	}
 
 }
