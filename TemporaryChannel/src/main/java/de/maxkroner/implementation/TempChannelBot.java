@@ -50,6 +50,7 @@ import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedE
 import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelDeleteEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelJoinEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelMoveEvent;
+import sx.blah.discord.handle.impl.obj.Embed;
 import sx.blah.discord.handle.obj.ICategory;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IEmoji;
@@ -57,7 +58,9 @@ import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
 import sx.blah.discord.handle.obj.Permissions;
+import sx.blah.discord.util.EmbedBuilder;
 import sx.blah.discord.util.MessageBuilder;
+import sx.blah.discord.util.RequestBuffer;
 
 public class TempChannelBot extends Bot {
 	private static final int timeout_for_unknown_channels = 5;
@@ -80,7 +83,7 @@ public class TempChannelBot extends Bot {
 		super(token, new TempChannelMenue(scanner, userInput, tempChannelsByGuild));
 		home = System.getProperty("user.home");
 		path_serialized_tempChannels = Paths.get(home, "discordBots", "TempChannels", "tmp").toString();
-		ImmutableSet<String> commands = ImmutableSet.of("c", "cc", "kick", "ban");
+		ImmutableSet<String> commands = ImmutableSet.of("c", "cc", "kick", "ban", "help");
 		addCommandParsing(new CommandSet(commands), this.getClass());
 	}
 
@@ -174,7 +177,7 @@ public class TempChannelBot extends Bot {
 					event.getChannel(), false);
 			sendMessage("But if you want to send me a command please do it in a server text channel, ok?", event.getChannel(), false);
 			return;
-		}	
+		}
 
 	}
 
@@ -189,7 +192,7 @@ public class TempChannelBot extends Bot {
 	}
 
 	// ----- COMMAND HANDLING ----- //
-	
+
 	@CommandHandler("c")
 	protected void executeChannelCommand(MessageReceivedEvent event, Command command) {
 		IChannel channel = event.getChannel();
@@ -307,6 +310,28 @@ public class TempChannelBot extends Bot {
 	protected void executeBanCommand(MessageReceivedEvent event, Command command) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		sendMessage("Ban available soon!", event.getChannel(), false);
+	}
+
+	@CommandHandler("help")
+	protected void executeHelpCommand(MessageReceivedEvent event, Command command) {
+		StringBuilder strBuilderCreate = new StringBuilder().append("Command structure:\n")
+				.append("`!c [-option [argument1] [argument2] ...] [...]`\n\n").append("List of options:\n")
+				.append("`-p [@User1 @User2 ...]`\t ***private:*** *only mentioned users may join*\n")
+				.append("`-m [@User1 @User2 ...]`\t ***move:*** *move users into new channel*\n")
+				.append("`-t x` \t\t\t\t\t\t\t\t\t\t ***timeout:*** *delete channel after being x minutes empty*\n")
+				.append("`-l x` \t\t\t\t\t\t\t\t\t\t ***limit:*** *set user limit to x*\n")
+				.append("`-n \"channel name\"`\t\t\t   ***name:*** *give your channel a name*\n\n").append("Example:\n")
+				.append("`!c -n \"channel name\" -p @User1 -t 20`");
+
+		StringBuilder strBuilderDelete = new StringBuilder().append("`!cc` \t\t\t  *delete only your* ***empty*** *TempChannels*\n")
+				.append("`!cc -f` \t\t forces the deletion of all your TempChannels");
+
+		EmbedBuilder builder = new EmbedBuilder();
+		builder.withColor(0, 255, 0).appendField("Create new TempChannel", strBuilderCreate.toString(), false)
+				.appendField("Delete all your TempChannel", strBuilderDelete.toString(), false).appendField("Kick User from TempChannel", "`!kick @User1 @User2 ...`", false)
+				.appendField("Ban User from TempChannel", "`!ban @User1 @User2 ...`", false);
+
+		RequestBuffer.request(() -> event.getAuthor().getOrCreatePMChannel().sendMessage(builder.build()));
 	}
 
 	// ----- EXCECUTING METHODS ----- //
@@ -448,8 +473,8 @@ public class TempChannelBot extends Bot {
 
 		// save the ArrayList to a file
 		writeObjectToFile(tempChannelTOs, path_serialized_tempChannels, file_name);
-		//TODO find out how to log after shutdown-hook was called
-		//Logger.info("{} serialized TempChannels are saved.", tempChannelTOs.size()); 
+		// TODO find out how to log after shutdown-hook was called
+		// Logger.info("{} serialized TempChannels are saved.", tempChannelTOs.size());
 	}
 
 	private void writeObjectToFile(Object object, String path, String fileName) {
@@ -464,8 +489,8 @@ public class TempChannelBot extends Bot {
 			out.writeObject(object);
 			out.close();
 			fileOut.close();
-			//TODO fix
-			//Logger.info("Serialized objects written to: \"{}\"", filePath);
+			// TODO fix
+			// Logger.info("Serialized objects written to: \"{}\"", filePath);
 		} catch (IOException i) {
 			Logger.error(i);
 		}
@@ -483,7 +508,7 @@ public class TempChannelBot extends Bot {
 				// create TempChannels from TOs
 				for (TempChannelTO to : tempChannelTOs) {
 					IVoiceChannel voiceChannel = getClient().getVoiceChannelByID(to.getChannelSnowflakeID());
-					if((voiceChannel != null) && !voiceChannel.isDeleted()){// if channel still exists
+					if ((voiceChannel != null) && !voiceChannel.isDeleted()) {// if channel still exists
 						IGuild guild = voiceChannel.getGuild();
 						IUser user = guild.getUserByID(to.getOwnerSnowflakeID());
 						if ((user != null) // if owner is still in guild
@@ -493,7 +518,7 @@ public class TempChannelBot extends Bot {
 							importedCount++;
 						}
 					}
-					
+
 				}
 				Logger.info("Importet {} from the {} serialized TempChannels", importedCount, tempChannelTOs.size());
 
@@ -594,7 +619,7 @@ public class TempChannelBot extends Bot {
 			}
 		}
 	}
-	
+
 	private void sendErrorMessages(IChannel channel, IUser author, List<String> errorMessages, String originalMessage) {
 		if (errorMessages.size() == 1) {
 			sendMessage("Ey " + author + ": " + errorMessages.get(0), channel, false);
