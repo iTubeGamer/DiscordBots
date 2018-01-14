@@ -1,15 +1,18 @@
 package de.maxkroner.parsing;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class CommandOption {
 	private String commandOptionName;
-	private String[] parameterList;
+	private List<String> parameterList;
 	
 	public CommandOption(String commandOptionName){
 		this.commandOptionName = commandOptionName;
-		this.parameterList = new String[0];
+		this.parameterList = new ArrayList<String>();
 	}
 	
-	public CommandOption(String commandOptionName, String[] parameterList) {
+	public CommandOption(String commandOptionName, List<String> parameterList) {
 		super();
 		this.commandOptionName = commandOptionName;
 		this.parameterList = parameterList;
@@ -20,11 +23,11 @@ public class CommandOption {
 	public void setCommandOptionName(String commandOptionName) {
 		this.commandOptionName = commandOptionName;
 	}
-	public String[] getParameterList() {
+	public List<String> getParameterList() {
 		return parameterList;
 	}
-	public void setParameterList(String[] parameterList) {
-		this.parameterList = parameterList;
+	public void addParameter(String parameter){
+		parameterList.add(parameter);
 	}
 	
 }

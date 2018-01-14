@@ -18,9 +18,9 @@ public class OptionParsing {
 	public static List<IUser> parsePrivateOption(CommandOption option, MessageReceivedEvent event, List<String> errorMessages, IDiscordClient client) {
 		// no users mentioned = no private channel
 		List<IUser> allowedUsers = new ArrayList<>();
-		if (option.getParameterList().length <= 0) {
+		if (option.getParameterList().size() <= 0) {
 			return allowedUsers;
-		}else if (option.getParameterList()[0].equals("all") && option.getParameterList().length == 1) {
+		}else if (option.getParameterList().get(0).equals("all") && option.getParameterList().size() == 1) {
 			// all users in current channel are allowed
 			allowedUsers = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers();
 			allowedUsers.remove(event.getAuthor());
@@ -92,11 +92,11 @@ public class OptionParsing {
 			}
 			*/
 			
-			if (option.getParameterList().length == 0) {
+			if (option.getParameterList().size() == 0) {
 				// move only author
 				movePlayers = new ArrayList<IUser>();
 				movePlayers.add(event.getAuthor());
-			} else if (option.getParameterList()[0].equals("all")) { 
+			} else if (option.getParameterList().get(0).equals("all")) { 
 				//all users in current channel should be moved
 				if ((event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers() != null)) {
 					movePlayers = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers();
@@ -109,6 +109,7 @@ public class OptionParsing {
 			return movePlayers;
 		}
 
+	/*
 	private static boolean optionListContainsOptionString(String optionString, List<CommandOption> options) {
 		for (CommandOption option : options) {
 			if (option.getCommandOptionName().equals(optionString)) {
@@ -118,9 +119,10 @@ public class OptionParsing {
 	
 		return false;
 	}
+	*/
 	
 	public static String parseNameOption(IChannel channel, String name, CommandOption option, List<String> errorMessages) {
-		if (option.getParameterList().length >= 1) {
+		if (option.getParameterList().size() >= 1) {
 			name = "";
 			for (String parameter : option.getParameterList()) {
 				name = name + " " + parameter;
@@ -135,8 +137,8 @@ public class OptionParsing {
 	}
 	
 	public static int parseLimitOption(IChannel channel, int limit, CommandOption option, List<String> errorMessages) {
-		if (option.getParameterList().length >= 1) {
-			int given_limit = Integer.parseInt(option.getParameterList()[0]);
+		if (option.getParameterList().size() >= 1) {
+			int given_limit = Integer.parseInt(option.getParameterList().get(0));
 			if (given_limit >= 1 && given_limit <= 99) {
 				limit = given_limit;
 			} else {
@@ -149,8 +151,8 @@ public class OptionParsing {
 	}
 	
 	public static int parseTimoutOption(IChannel channel, int timeout, CommandOption option, List<String> errorMessages) {
-		if (option.getParameterList().length >= 1) {
-			int given_timeout = Integer.parseInt(option.getParameterList()[0]);
+		if (option.getParameterList().size() >= 1) {
+			int given_timeout = Integer.parseInt(option.getParameterList().get(0));
 			if (given_timeout >= 1 && given_timeout <= 180) {
 				timeout = given_timeout;
 			} else {

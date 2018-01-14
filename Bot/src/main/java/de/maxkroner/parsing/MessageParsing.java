@@ -56,15 +56,40 @@ public class MessageParsing {
 			commandOption = new CommandOption(optionString.substring(0, optionString.indexOf(" ")));
 			String parameterString = optionString.substring(optionString.indexOf(" ") + 1);
 			parameterString = parameterString + " ";
-			String[] parameterList = Arrays.stream(parameterString.split(" ")).filter(s -> !s.isEmpty()).toArray(String[]::new);
-			if (parameterList.length >= 1) {
-				commandOption.setParameterList(parameterList);
-			}
+			splitParametersIntoCommandOption(parameterString, commandOption);
 		} else {
 			//optionString does not contain parameters
 			commandOption = new CommandOption(optionString);
 		}
 
 		return commandOption;
+	}
+	
+	private static void splitParametersIntoCommandOption(String parameterString, CommandOption commandOption){
+		StringBuilder builder = new StringBuilder();
+		boolean inQuotation = false;
+		for (char character : parameterString.toCharArray()){
+			
+			if(character != ' ' && character != '"'){
+				builder.append(character);
+			} else if (character == ' ' && !inQuotation) {
+				if(builder.length() > 0){
+					commandOption.addParameter(builder.toString());
+					builder = new StringBuilder();
+				}				
+			} else if (character == ' ' && inQuotation) {
+				builder.append(character);
+			} else if (character == '"'){
+				if(inQuotation){
+					if(builder.length() > 0){
+						commandOption.addParameter(builder.toString());
+						builder = new StringBuilder();
+					}	
+					inQuotation = false;
+				} else {
+					inQuotation = true;
+				}
+			}
+		}		
 	}
 }
