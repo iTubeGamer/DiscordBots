@@ -30,6 +30,7 @@ import org.pmw.tinylog.Logger;
 
 import com.google.common.collect.ImmutableSet;
 
+import de.maxkroner.implementation.runnable.CheckTempChannelRunnable;
 import de.maxkroner.model.TempChannel;
 import de.maxkroner.model.TempChannelMap;
 import de.maxkroner.parsing.Command;
