@@ -323,12 +323,12 @@ public class TempChannelBot extends Bot {
 				.append("`-n \"channel name\"`\t\t\t   ***name:*** *give your channel a name*\n\n").append("Example:\n")
 				.append("`!c -n \"channel name\" -p @User1 -t 20`");
 
-		StringBuilder strBuilderDelete = new StringBuilder().append("`!cc` \t\t\t  *delete only your* ***empty*** *TempChannels*\n")
-				.append("`!cc -f` \t\t forces the deletion of all your TempChannels");
+		StringBuilder strBuilderDelete = new StringBuilder().append("`!cc` \t\t\t  ***channel clear:*** *delete only your empty TempChannels*\n")
+				.append("`!cc -f`\t\t ***channel clear force:*** *forces the deletion of all your TempChannels*");
 
 		EmbedBuilder builder = new EmbedBuilder();
 		builder.withColor(0, 255, 0).appendField("Create new TempChannel", strBuilderCreate.toString(), false)
-				.appendField("Delete all your TempChannel", strBuilderDelete.toString(), false).appendField("Kick User from TempChannel", "`!kick @User1 @User2 ...`", false)
+				.appendField("Delete all your TempChannels", strBuilderDelete.toString(), false).appendField("Kick User from TempChannel", "`!kick @User1 @User2 ...`", false)
 				.appendField("Ban User from TempChannel", "`!ban @User1 @User2 ...`", false);
 
 		RequestBuffer.request(() -> event.getAuthor().getOrCreatePMChannel().sendMessage(builder.build()));

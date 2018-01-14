@@ -17,19 +17,10 @@ public class OptionParsing {
 	
 	public static List<IUser> parsePrivateOption(CommandOption option, MessageReceivedEvent event, List<String> errorMessages, IDiscordClient client) {
 		// no users mentioned = no private channel
-		if (option.getParameterList().length <= 0) {
-			errorMessages.add(
-					"You need to specify the users who may join your private channel, when using the private-option: `!c -p @user1 @user2`");
-			return null;
-		}
-
 		List<IUser> allowedUsers = new ArrayList<>();
-
-		if (option.getParameterList()[0].equals("all") && option.getParameterList().length > 1) {
-			errorMessages
-					.add("You used the private option `-p` with the argument `all` which is great - it means all the users who are in the same channel as you "
-							+ " will be allowed in the new channel. But you mentioned other parameters aswell, which you can't do if you use `all` as the first parameter.");
-		} else if (option.getParameterList()[0].equals("all") && option.getParameterList().length == 1) {
+		if (option.getParameterList().length <= 0) {
+			return allowedUsers;
+		}else if (option.getParameterList()[0].equals("all") && option.getParameterList().length == 1) {
 			// all users in current channel are allowed
 			allowedUsers = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers();
 			allowedUsers.remove(event.getAuthor());
@@ -86,25 +77,27 @@ public class OptionParsing {
 	}
 	
 	public static List<IUser> parseMoveOption(List<CommandOption> options, CommandOption option, MessageReceivedEvent event, List<IUser> movePlayers, List<String> errorMessages, IDiscordClient client) {
-			
+		/*
 			boolean privateOptionUsed = optionListContainsOptionString("p", options);
-			/*
+			
 			if (option.getParameterList().length > 0 && privateOptionUsed) {
 				sendMessage(
 						"Tip: If you create a private channel with -p and you don't mention users behind -m, all users you mentioned behind -p will be moved automatically.",
 						event.getChannel(), false);
-			} else */
+			} else 
 			
 			//all alowed users will be moved
 			if (option.getParameterList().length == 0 && privateOptionUsed) {
 				return null;
 			}
-	
-			// all users in current channel should be moved
+			*/
+			
 			if (option.getParameterList().length == 0) {
+				// move only author
 				movePlayers = new ArrayList<IUser>();
 				movePlayers.add(event.getAuthor());
-			} else if (option.getParameterList()[0].equals("all")) {
+			} else if (option.getParameterList()[0].equals("all")) { 
+				//all users in current channel should be moved
 				if ((event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers() != null)) {
 					movePlayers = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers();
 				}

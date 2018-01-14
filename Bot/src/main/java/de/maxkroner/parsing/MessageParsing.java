@@ -20,25 +20,23 @@ public class MessageParsing {
 	public static Command parseMessageWithCommandSet(String message, CommandSet commandSet){
 		if(message.startsWith(commandSet.getCommandIdentifier())){
 			String commandString = message.substring(commandSet.getCommandIdentifier().length());
-			boolean commandHasParameters = commandString.contains(" ");
+			boolean commandHasOptions = commandString.contains(" ");
 			String commandName;
-			if(commandHasParameters){
+			if(commandHasOptions){
 				commandName = commandString.substring(0, commandString.indexOf(" "));
 			} else {
 				commandName = commandString;
-			}
-			
+			}		
+
 			if(commandSet.getCommands().contains(commandName)){
 				String[] commandOptionStrings = new String[0];
-				List<CommandOption> commandOptions = new ArrayList<>();
-				
-				//if command has a String after the command name
-				if (commandHasParameters) {				
+				List<CommandOption> commandOptions = new ArrayList<>();				
+				if (commandHasOptions) {				
 					String option = commandString.substring(commandString.indexOf(" ") + 1);
 					//if it is a valid option
-					if (option.charAt(0) == '-') {
+					if (option.charAt(0) == commandSet.getOptionIdentifier()) {
 						//split all options in own Strings
-						commandOptionStrings = option.split("-");
+						commandOptionStrings = option.split(String.valueOf(commandSet.getOptionIdentifier()));
 						commandOptions = (List<CommandOption>) Arrays.stream(commandOptionStrings).map(String::trim).filter(s -> !s.isEmpty())
 								.map(s -> parseOptionFromString(s)).collect(Collectors.toList());
 					}
