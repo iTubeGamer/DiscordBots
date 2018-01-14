@@ -28,7 +28,7 @@ public class Main {
 		//configure logging folder		
 		try {
 			String home = System.getProperty("user.home");;
-			String filename = Paths.get(home, "discordBots", "tempChannels", "log", "tc.log").toString() ;
+			String filename = Paths.get(home, "discordBots", "TempChannels", "log", "tc.log").toString() ;
 			Configurator.fromResource("tinylog.properties")
 						.addWriter(new RollingFileWriter(filename, 1000, new TimestampLabeler("yyyy-MM-dd"), new DailyPolicy()))
 						.activate();

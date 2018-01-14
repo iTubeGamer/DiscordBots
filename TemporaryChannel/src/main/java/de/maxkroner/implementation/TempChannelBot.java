@@ -66,7 +66,7 @@ public class TempChannelBot extends Bot {
 	private static final EnumSet<Permissions> voice_connect = EnumSet.of(Permissions.VOICE_CONNECT);
 	private static final EnumSet<Permissions> empty = EnumSet.noneOf(Permissions.class);
 	private static final int USER_CHANNEL_LIMIT = 3;
-	private static String path_serialized_tempChannels = "~/discordBots/tempChannels/temp/";
+	private static String path_serialized_tempChannels = "~/discordBots/TempChannels/temp/";
 	private static final String file_name = "tempChannels.ser";
 	private static String home = "";
 	private static boolean still_in_startup_mode = true;
@@ -78,7 +78,7 @@ public class TempChannelBot extends Bot {
 	public TempChannelBot(String token, Scanner scanner, UserInput userInput) {
 		super(token, new TempChannelMenue(scanner, userInput, tempChannelsByGuild));
 		home = System.getProperty("user.home");
-		path_serialized_tempChannels = Paths.get(home, "discordBots", "tempChannels", "tmp").toString();
+		path_serialized_tempChannels = Paths.get(home, "discordBots", "TempChannels", "tmp").toString();
 		ImmutableSet<String> commands = ImmutableSet.of("c", "cc", "kick", "ban");
 		addCommandParsing(new CommandSet(commands), this.getClass());
 	}

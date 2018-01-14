@@ -37,7 +37,7 @@ public class CheckTempChannelRunnable<E> implements Runnable {
 					// if Channel still exists
 					if (!tempChannel.getChannel().isDeleted()) {
 						updateTempChannelAndSendNotifications(tempChannelToDelete, tempChannel);
-					} else {
+					} else if(tempChannel.getChannel().isDeleted() && tempChannel.getEmptyMinutes() != 0) {
 						// if Channel was already deleted (shouldn't happen)
 						tempChannelToDelete.add(tempChannel);
 						Logger.warn("Channel \"{}\" in ChannelMap didn't exist anymore, removed it now!", tempChannel.getChannel().getName());
