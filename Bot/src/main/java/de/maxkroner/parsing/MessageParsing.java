@@ -96,16 +96,16 @@ public class MessageParsing {
 			if(character != ' ' && character != '"'){
 				builder.append(character);
 			} else if (character == ' ' && !inQuotation) {
-				if(builder.length() > 0){
-					list.add(builder.toString());
+				if(builder.toString().trim().length() > 0){
+					list.add(builder.toString().trim());
 					builder = new StringBuilder();
 				}				
 			} else if (character == ' ' && inQuotation) {
 				builder.append(character);
 			} else if (character == '"'){
 				if(inQuotation){
-					if(builder.length() > 0){
-						list.add(builder.toString());
+					if(builder.toString().trim().length() > 0){
+						list.add(builder.toString().trim());
 						builder = new StringBuilder();
 					}	
 					inQuotation = false;
@@ -113,6 +113,9 @@ public class MessageParsing {
 					inQuotation = true;
 				}
 			}
+		}		
+		if(builder.toString().trim().length() > 0){
+			list.add(builder.toString().trim());
 		}	
 	}
 	

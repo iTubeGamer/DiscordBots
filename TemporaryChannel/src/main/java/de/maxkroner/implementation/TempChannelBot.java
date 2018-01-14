@@ -47,6 +47,7 @@ import sx.blah.discord.handle.impl.events.guild.GuildUnavailableEvent;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelDeleteEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelJoinEvent;
+import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelLeaveEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelMoveEvent;
 import sx.blah.discord.handle.obj.ICategory;
 import sx.blah.discord.handle.obj.IChannel;
@@ -184,7 +185,13 @@ public class TempChannelBot extends Bot {
 
 	@EventSubscriber
 	public void onUserVoiceChannelMove(UserVoiceChannelMoveEvent event) {
-		setEmptyMinutesToZero(event.getVoiceChannel());
+		setEmptyMinutesToZero(event.getNewChannel());
+		deleteIfKickOrBanChannel(event.getOldChannel());
+	}
+	
+	@EventSubscriber
+	public void onUserVoiceChannelLeave(UserVoiceChannelLeaveEvent event) {
+		deleteIfKickOrBanChannel(event.getVoiceChannel());
 	}
 
 	// ----- COMMAND HANDLING ----- //
@@ -236,7 +243,7 @@ public class TempChannelBot extends Bot {
 		}
 
 		if (errorMessages.isEmpty()) {
-			createTempChannel(event.getGuild(), event.getAuthor(), name, allowedUsers, movePlayers, limit, timeout);
+			createTempChannel(event.getGuild(), event.getAuthor(), name, allowedUsers, movePlayers, limit, timeout, false);
 		} else {
 			sendErrorMessages(event.getChannel(), event.getAuthor(), errorMessages, event.getMessage().getContent());
 		}
@@ -296,16 +303,40 @@ public class TempChannelBot extends Bot {
 	@CommandHandler("kick")
 	protected void executeKickCommand(MessageReceivedEvent event, Command command) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());	
-		List<IUser> usersToKick = OptionParsing.parseUserList(command.getArguments().orElse(Collections.emptyList()), getClient());
-		createTempChannel(event.getGuild(), event.getAuthor(), "you got kicked", null, usersToKick, 0, 0);
+		IVoiceChannel channelToKickFrom = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel();
+		TempChannel tempChannelToKickFrom = tempChannelsByGuild.get(event.getGuild()).getTempChannelForChannel(channelToKickFrom);
+		if(tempChannelToKickFrom != null && event.getAuthor().equals(tempChannelToKickFrom.getOwner())){
+			List<IUser> usersToKick = OptionParsing.parseUserList(command.getArguments().orElse(Collections.emptyList()), getClient());
+			if(usersToKick.remove(event.getAuthor())){
+				sendMessage("You tried to kick yourself from your own TempChannel :scream:", event.getAuthor().getOrCreatePMChannel(), false);
+			}
+			if(!usersToKick.isEmpty()){
+				TempChannel tempChannel = createTempChannel(event.getGuild(), getClient().getOurUser(), "you got kicked", null, Collections.emptyList(), 0, 0, true);
+				movePlayersToChannel(usersToKick, tempChannel.getChannel(), event.getAuthor());
+			}	
+		} else {
+			sendMessage("You can only use this command if you are in a TempChannel that you own", event.getAuthor().getOrCreatePMChannel(), false);
+		}
 	}
 
 	@CommandHandler("ban")
 	protected void executeBanCommand(MessageReceivedEvent event, Command command) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());	
-		List<IUser> usersToBan = OptionParsing.parseUserList(command.getArguments().orElse(Collections.emptyList()), getClient());
-		denyUsersToJoinChannel(usersToBan, event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel());
-		createTempChannel(event.getGuild(), event.getAuthor(), "you got banned", null, usersToBan, 0, 0);
+		IVoiceChannel channelToBanFrom = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel();
+		TempChannel tempChannelToBanFrom = tempChannelsByGuild.get(event.getGuild()).getTempChannelForChannel(channelToBanFrom);
+		if(tempChannelToBanFrom != null && event.getAuthor().equals(tempChannelToBanFrom.getOwner())){
+			List<IUser> usersToBan = OptionParsing.parseUserList(command.getArguments().orElse(Collections.emptyList()), getClient());
+			if(usersToBan.remove(event.getAuthor())){
+				sendMessage("You tried to ban yourself from your own TempChannel :scream:", event.getAuthor().getOrCreatePMChannel(), false);
+			}
+			if(!usersToBan.isEmpty()){
+				denyUsersToJoinChannel(usersToBan, event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel());	
+				TempChannel tempChannel = createTempChannel(event.getGuild(), getClient().getOurUser(), "you got banned", null, Collections.emptyList(), 0, 0, true);
+				movePlayersToChannel(usersToBan, tempChannel.getChannel(), event.getAuthor());
+			}	
+		} else {
+			sendMessage("You can only use this command if you are in a TempChannel that you own", event.getAuthor().getOrCreatePMChannel(), false);
+		}		
 	}
 
 
@@ -334,7 +365,7 @@ public class TempChannelBot extends Bot {
 
 	// ----- EXCECUTING METHODS ----- //
 	private TempChannel createTempChannel(IGuild guild, IUser owner, String channelName, List<IUser> allowedUsers, List<IUser> movePlayers, int limit,
-			int timeout) {
+			int timeout, boolean kickOrBanChannel) {
 
 		// create the new channel
 		IVoiceChannel channel = guild.createVoiceChannel(channelName);
@@ -347,7 +378,7 @@ public class TempChannelBot extends Bot {
 		channel.changeUserLimit(limit);
 
 		// add temp-Channel
-		TempChannel tempChannel = new TempChannel(channel, owner, timeout);
+		TempChannel tempChannel = new TempChannel(channel, owner, timeout, kickOrBanChannel);
 		tempChannelsByGuild.get(guild).addTempChannel(tempChannel);
 
 		// set channel permissions
@@ -362,7 +393,8 @@ public class TempChannelBot extends Bot {
 	private void movePlayersToChannel(List<IUser> playersToMove, IVoiceChannel channel, IUser author) {
 		for (IUser user : playersToMove) {
 			// only move players who are in the same voice channel as the author
-			if (user.getVoiceStateForGuild(channel.getGuild()).getChannel() == author.getVoiceStateForGuild(channel.getGuild()).getChannel()) {
+			IChannel authorChannel = author.getVoiceStateForGuild(channel.getGuild()).getChannel();
+			if (user.getVoiceStateForGuild(channel.getGuild()).getChannel() == authorChannel) {
 				user.moveToVoiceChannel(channel);
 			} else {
 				sendPrivateMessage(author, "The user " + user + " wasn't in the same channel as you and therefore couldn't be moved.");
@@ -546,7 +578,7 @@ public class TempChannelBot extends Bot {
 		if (tempCategory != null) {
 			for (IVoiceChannel channel : tempCategory.getVoiceChannels()) {
 				if (!tempChannelsByGuild.get(guild).isTempChannelForChannelExistentInMap(channel)) {
-					TempChannel tempChannel = new TempChannel(channel, getClient().getOurUser(), timeout_for_unknown_channels);
+					TempChannel tempChannel = new TempChannel(channel, getClient().getOurUser(), timeout_for_unknown_channels, false);
 					tempChannelsByGuild.get(guild).addTempChannel(tempChannel);
 					Logger.info("Created 5min timeout TempChannel for unkown channel: {} in guild {}", channel.getName(), guild.getName());
 				}
@@ -614,6 +646,16 @@ public class TempChannelBot extends Bot {
 			if (tempChannel != null) {
 				tempChannel.setEmptyMinutes(0);
 				Logger.info("User joined tempChannel {}, setting empty minutes to 0", voiceChannel.getName());
+			}
+		}
+	}
+	
+	private void deleteIfKickOrBanChannel(IVoiceChannel voiceChannel) {
+		TempChannelMap tempChannelMap = tempChannelsByGuild.get(voiceChannel.getGuild());
+		if (tempChannelMap != null) {
+			TempChannel tempChannel = tempChannelMap.getTempChannelForChannel(voiceChannel);
+			if (tempChannel != null && tempChannel.isKickOrBanChannel() && tempChannel.getChannel().getConnectedUsers().isEmpty()) {
+				tempChannel.getChannel().delete();
 			}
 		}
 	}

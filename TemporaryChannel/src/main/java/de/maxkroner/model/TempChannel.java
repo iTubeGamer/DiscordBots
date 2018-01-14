@@ -8,21 +8,20 @@ public class TempChannel {
 	private IUser owner;
 	private int timeoutInMinutes;
 	private int emptyMinuts;
+	private boolean kickOrBanChannel = false;
 	
-	public TempChannel(IVoiceChannel channel, IUser owner, int timeoutInMinutes) {
+	public TempChannel(IVoiceChannel channel, IUser owner, int timeoutInMinutes, boolean kickOrBanChannel) {
 		super();
 		this.channel = channel;
 		this.timeoutInMinutes = timeoutInMinutes;
 		this.emptyMinuts = 0;
 		this.owner = owner;
+		this.kickOrBanChannel = kickOrBanChannel;
 	}
 	
 	public TempChannel(IVoiceChannel channel, IUser owner, int timeoutInMinutes, int emptyMinutes) {
-		super();
-		this.channel = channel;
-		this.timeoutInMinutes = timeoutInMinutes;
+		this(channel, owner, timeoutInMinutes, false);
 		this.emptyMinuts = emptyMinutes;
-		this.owner = owner;
 	}
 
 	public int getEmptyMinutes() {
@@ -43,6 +42,10 @@ public class TempChannel {
 
 	public IVoiceChannel getChannel() {
 		return this.channel;
+	}
+
+	public boolean isKickOrBanChannel() {
+		return kickOrBanChannel;
 	}
 	
 }
