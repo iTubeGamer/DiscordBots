@@ -138,9 +138,13 @@ public abstract class Bot {
 	}
 	
 	//---Message Parsing Event System---//
-	protected void addCommandParsing(CommandSet commandSet, Class<? extends Bot> botClass){
-		this.commandSet = commandSet;
+	protected void addCommandParsing(Class<? extends Bot> botClass, String commandIdentifier, char optionIdentifier){
 		createCommandMethodsMap(botClass);
+		this.commandSet = new CommandSet(commandIdentifier, commandMethodsMap.keySet(), optionIdentifier);
+	}
+	
+	protected void addCommandParsing(Class<? extends Bot> botClass){
+		addCommandParsing(botClass, "!", '-');
 	}
 
 	private void createCommandMethodsMap(Class<? extends Bot> botClass) {

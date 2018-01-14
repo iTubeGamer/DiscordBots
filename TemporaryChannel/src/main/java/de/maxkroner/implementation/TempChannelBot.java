@@ -28,8 +28,6 @@ import java.util.stream.Collectors;
 
 import org.pmw.tinylog.Logger;
 
-import com.google.common.collect.ImmutableSet;
-
 import de.maxkroner.implementation.runnable.CheckTempChannelRunnable;
 import de.maxkroner.model.TempChannel;
 import de.maxkroner.model.TempChannelMap;
@@ -83,8 +81,7 @@ public class TempChannelBot extends Bot {
 		super(token, new TempChannelMenue(scanner, userInput, tempChannelsByGuild));
 		home = System.getProperty("user.home");
 		path_serialized_tempChannels = Paths.get(home, "discordBots", "TempChannels", "tmp").toString();
-		ImmutableSet<String> commands = ImmutableSet.of("c", "cc", "kick", "ban", "help");
-		addCommandParsing(new CommandSet(commands), this.getClass());
+		addCommandParsing(this.getClass());
 	}
 
 	@Override
@@ -335,7 +332,7 @@ public class TempChannelBot extends Bot {
 	}
 
 	// ----- EXCECUTING METHODS ----- //
-	private void createChannel(MessageReceivedEvent event, String name, List<IUser> allowedUsers, List<IUser> movePlayers, int limit, int timeout) {
+	private TempChannel createChannel(MessageReceivedEvent event, String name, List<IUser> allowedUsers, List<IUser> movePlayers, int limit, int timeout) {
 		IGuild guild = event.getGuild();
 		IUser owner = event.getAuthor();
 
@@ -358,12 +355,15 @@ public class TempChannelBot extends Bot {
 
 		// move players into new channel
 		movePlayersToChannel(movePlayers, channel, event.getAuthor());
-
-		MessageBuilder mb = new MessageBuilder(getClient()).withChannel(event.getChannel());
-		mb.withContent("Yo " + owner + ", I created the channel `" + name + "` 4 u m8 ");
-		mb.appendContent(getRandomChannelEmoji(guild));
-		mb.build();
-
+		
+		if(event.getAuthor() != getClient().getOurUser()){
+			MessageBuilder mb = new MessageBuilder(getClient()).withChannel(event.getChannel());
+			mb.withContent("Yo " + owner + ", I created the channel `" + name + "` 4 u m8 ");
+			mb.appendContent(getRandomChannelEmoji(guild));
+			mb.build();
+		}	
+		
+		return tempChannel;
 	}
 
 	private void movePlayersToChannel(List<IUser> playersToMove, IVoiceChannel channel, IUser author) {
