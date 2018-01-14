@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,7 +35,6 @@ import de.maxkroner.model.TempChannelMap;
 import de.maxkroner.parsing.Command;
 import de.maxkroner.parsing.CommandHandler;
 import de.maxkroner.parsing.CommandOption;
-import de.maxkroner.parsing.CommandSet;
 import de.maxkroner.parsing.OptionParsing;
 import de.maxkroner.to.TempChannelTO;
 import de.maxkroner.ui.TempChannelMenue;
@@ -48,7 +48,6 @@ import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedE
 import sx.blah.discord.handle.impl.events.guild.voice.VoiceChannelDeleteEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelJoinEvent;
 import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelMoveEvent;
-import sx.blah.discord.handle.impl.obj.Embed;
 import sx.blah.discord.handle.obj.ICategory;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IEmoji;
@@ -192,9 +191,6 @@ public class TempChannelBot extends Bot {
 
 	@CommandHandler("c")
 	protected void executeChannelCommand(MessageReceivedEvent event, Command command) {
-		IChannel channel = event.getChannel();
-		IUser author = event.getAuthor();
-		IGuild guild = event.getGuild();
 		String name = getRandomName();
 		List<IUser> allowedUsers = null; // null = everyone allowed in the new channel
 		List<IUser> movePlayers = new ArrayList<IUser>(); // players to move in the new channel
@@ -204,29 +200,29 @@ public class TempChannelBot extends Bot {
 
 		List<String> errorMessages = new ArrayList<>();
 
-		if (checkIfPrequisitesAreMet(channel, author, guild, errorMessages)) {
+		if (checkIfPrequisitesAreMet(event.getChannel(), event.getAuthor(), event.getGuild(), errorMessages)) {
 			Logger.info("Parsing message: {}", event.getMessage().getContent());
 
-			for (CommandOption option : command.getCommandOptions()) {
+			for (CommandOption option : command.getCommandOptions().orElse(Collections.emptyList())) {
 
 				switch (option.getCommandOptionName()) {
 				case "p":
-					allowedUsers = OptionParsing.parsePrivateOption(option, event, errorMessages, getClient());
+					allowedUsers = OptionParsing.parsePrivateOption(option, event, getClient());
 					break;
 				case "m":
-					movePlayers = OptionParsing.parseMoveOption(command.getCommandOptions(), option, event, movePlayers, errorMessages, getClient());
+					movePlayers = OptionParsing.parseMoveOption(option, event, getClient());
 					if (movePlayers == null) {
 						moveAllowedPlayers = true;
 					}
 					break;
 				case "n":
-					name = OptionParsing.parseNameOption(channel, name, option, errorMessages);
+					name = OptionParsing.parseNameOption(event.getChannel(), name, option, errorMessages);
 					break;
 				case "l":
-					limit = OptionParsing.parseLimitOption(channel, limit, option, errorMessages);
+					limit = OptionParsing.parseLimitOption(event.getChannel(), limit, option, errorMessages);
 					break;
 				case "t":
-					timeout = OptionParsing.parseTimoutOption(channel, timeout, option, errorMessages);
+					timeout = OptionParsing.parseTimoutOption(event.getChannel(), timeout, option, errorMessages);
 					break;
 				}
 			}
@@ -235,14 +231,14 @@ public class TempChannelBot extends Bot {
 			if (moveAllowedPlayers) {
 				movePlayers = new ArrayList<IUser>();
 				movePlayers.addAll(allowedUsers);
-				movePlayers.add(author);
+				movePlayers.add(event.getAuthor());
 			}
 		}
 
 		if (errorMessages.isEmpty()) {
-			createChannel(event, name, allowedUsers, movePlayers, limit, timeout);
+			createTempChannel(event.getGuild(), event.getAuthor(), name, allowedUsers, movePlayers, limit, timeout);
 		} else {
-			sendErrorMessages(channel, author, errorMessages, event.getMessage().getContent());
+			sendErrorMessages(event.getChannel(), event.getAuthor(), errorMessages, event.getMessage().getContent());
 		}
 	}
 
@@ -265,7 +261,7 @@ public class TempChannelBot extends Bot {
 
 		// parse option -f
 		boolean forceDelete = false;
-		for (CommandOption option : command.getCommandOptions()) {
+		for (CommandOption option : command.getCommandOptions().orElse(Collections.emptyList())) {
 			switch (option.getCommandOptionName()) {
 			case "f":
 				forceDelete = true;
@@ -299,15 +295,19 @@ public class TempChannelBot extends Bot {
 
 	@CommandHandler("kick")
 	protected void executeKickCommand(MessageReceivedEvent event, Command command) {
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
-		sendMessage("Kick available soon!", event.getChannel(), false);
+		Logger.info("Parsing message: {}", event.getMessage().getContent());	
+		List<IUser> usersToKick = OptionParsing.parseUserList(command.getArguments().orElse(Collections.emptyList()), getClient());
+		createTempChannel(event.getGuild(), event.getAuthor(), "you got kicked", null, usersToKick, 0, 0);
 	}
 
 	@CommandHandler("ban")
 	protected void executeBanCommand(MessageReceivedEvent event, Command command) {
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
-		sendMessage("Ban available soon!", event.getChannel(), false);
+		Logger.info("Parsing message: {}", event.getMessage().getContent());	
+		List<IUser> usersToBan = OptionParsing.parseUserList(command.getArguments().orElse(Collections.emptyList()), getClient());
+		denyUsersToJoinChannel(usersToBan, event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel());
+		createTempChannel(event.getGuild(), event.getAuthor(), "you got banned", null, usersToBan, 0, 0);
 	}
+
 
 	@CommandHandler("help")
 	protected void executeHelpCommand(MessageReceivedEvent event, Command command) {
@@ -325,19 +325,19 @@ public class TempChannelBot extends Bot {
 
 		EmbedBuilder builder = new EmbedBuilder();
 		builder.withColor(0, 255, 0).appendField("Create new TempChannel", strBuilderCreate.toString(), false)
-				.appendField("Delete all your TempChannels", strBuilderDelete.toString(), false).appendField("Kick User from TempChannel", "`!kick @User1 @User2 ...`", false)
+				.appendField("Delete all your TempChannels", strBuilderDelete.toString(), false)
+				.appendField("Kick User from TempChannel", "`!kick @User1 @User2 ...`", false)
 				.appendField("Ban User from TempChannel", "`!ban @User1 @User2 ...`", false);
 
 		RequestBuffer.request(() -> event.getAuthor().getOrCreatePMChannel().sendMessage(builder.build()));
 	}
 
 	// ----- EXCECUTING METHODS ----- //
-	private TempChannel createChannel(MessageReceivedEvent event, String name, List<IUser> allowedUsers, List<IUser> movePlayers, int limit, int timeout) {
-		IGuild guild = event.getGuild();
-		IUser owner = event.getAuthor();
+	private TempChannel createTempChannel(IGuild guild, IUser owner, String channelName, List<IUser> allowedUsers, List<IUser> movePlayers, int limit,
+			int timeout) {
 
 		// create the new channel
-		IVoiceChannel channel = guild.createVoiceChannel(name);
+		IVoiceChannel channel = guild.createVoiceChannel(channelName);
 		Logger.info("Created channel: {}", channel.getName());
 
 		// put channel to temp category
@@ -354,15 +354,8 @@ public class TempChannelBot extends Bot {
 		setChannelPermissions(owner, allowedUsers, guild, channel);
 
 		// move players into new channel
-		movePlayersToChannel(movePlayers, channel, event.getAuthor());
-		
-		if(event.getAuthor() != getClient().getOurUser()){
-			MessageBuilder mb = new MessageBuilder(getClient()).withChannel(event.getChannel());
-			mb.withContent("Yo " + owner + ", I created the channel `" + name + "` 4 u m8 ");
-			mb.appendContent(getRandomChannelEmoji(guild));
-			mb.build();
-		}	
-		
+		movePlayersToChannel(movePlayers, channel, owner);
+
 		return tempChannel;
 	}
 
@@ -374,7 +367,6 @@ public class TempChannelBot extends Bot {
 			} else {
 				sendPrivateMessage(author, "The user " + user + " wasn't in the same channel as you and therefore couldn't be moved.");
 			}
-
 		}
 		if (!playersToMove.isEmpty()) {
 			Logger.info("Moved players: {}", playersToMove.stream().map(n -> n.getName()).collect(Collectors.joining(", ")));
@@ -406,6 +398,12 @@ public class TempChannelBot extends Bot {
 		}
 
 		return targetCategory;
+	}
+	
+	private void denyUsersToJoinChannel(List<IUser> usersToBan, IVoiceChannel channel) {
+		for (IUser user : usersToBan) {
+			channel.overrideUserPermissions(user, empty, voice_connect);
+		}	
 	}
 
 	// ----- HELPER METHODS ----- //

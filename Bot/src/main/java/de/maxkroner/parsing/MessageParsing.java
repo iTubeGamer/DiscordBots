@@ -3,6 +3,7 @@ package de.maxkroner.parsing;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import sx.blah.discord.api.IDiscordClient;
@@ -15,33 +16,55 @@ import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.util.MessageTokenizer;
 import sx.blah.discord.util.MessageTokenizer.MentionToken;
 
+/**
+ * Parses Command-objects from messages.
+ * There are 2 types of command-styles: argument-style and option-style
+ * 		argument-style: !command [argument1 argument2 ...]
+ * 		option-style: !command [-option [parameter1 parameter2 ...] ...
+ * 
+ * @author kroner
+ *
+ */
 public class MessageParsing {
 	
 	public static Command parseMessageWithCommandSet(String message, CommandSet commandSet){
 		if(message.startsWith(commandSet.getCommandIdentifier())){
 			String commandString = message.substring(commandSet.getCommandIdentifier().length());
-			boolean commandHasOptions = commandString.contains(" ");
+			boolean commandHasOptionsOrArguments = commandString.contains(" ");
+			boolean commandIsOptionStyle = commandString.charAt(commandString.indexOf(" ") + 1) == commandSet.getOptionIdentifier();
 			String commandName;
-			if(commandHasOptions){
+			if(commandHasOptionsOrArguments){
 				commandName = commandString.substring(0, commandString.indexOf(" "));
 			} else {
 				commandName = commandString;
+				return new Command(commandName, Optional.empty(), Optional.empty());
 			}		
 
 			if(commandSet.getCommands().contains(commandName)){
-				String[] commandOptionStrings = new String[0];
-				List<CommandOption> commandOptions = new ArrayList<>();				
-				if (commandHasOptions) {				
-					String option = commandString.substring(commandString.indexOf(" ") + 1);
-					//if it is a valid option
-					if (option.charAt(0) == commandSet.getOptionIdentifier()) {
-						//split all options in own Strings
-						commandOptionStrings = option.split(String.valueOf(commandSet.getOptionIdentifier()));
-						commandOptions = (List<CommandOption>) Arrays.stream(commandOptionStrings).map(String::trim).filter(s -> !s.isEmpty())
-								.map(s -> parseOptionFromString(s)).collect(Collectors.toList());
+				if(commandIsOptionStyle){
+					//parse options
+					String[] commandOptionStrings = new String[0];
+					List<CommandOption> commandOptions = new ArrayList<>();							
+					String optionsString = commandString.substring(commandString.indexOf(" ") + 1);
+					//split all options in own Strings
+					commandOptionStrings = optionsString.split(String.valueOf(commandSet.getOptionIdentifier()));
+					commandOptions = (List<CommandOption>) Arrays.stream(commandOptionStrings).map(String::trim).filter(s -> !s.isEmpty())
+							.map(s -> parseOptionFromString(s)).collect(Collectors.toList());
+					if (commandOptions.isEmpty()){
+						commandOptions = null;
 					}
+					return new Command(commandName, Optional.ofNullable(commandOptions), Optional.empty());
+					
+				} else {
+					//parse arguments
+					List<String> arguments = new ArrayList<>();
+					String argumentsString = commandString.substring(commandString.indexOf(" ") + 1);
+					splitArgumentsIntoList(argumentsString, arguments);
+					if(arguments.isEmpty()){
+						arguments = null;
+					}
+					return new Command(commandName, Optional.empty(), Optional.ofNullable(arguments));
 				}	
-				return new Command(commandName, commandOptions);
 			}	
 		}
 		
@@ -65,16 +88,16 @@ public class MessageParsing {
 		return commandOption;
 	}
 	
-	private static void splitParametersIntoCommandOption(String parameterString, CommandOption commandOption){
+	private static void splitArgumentsIntoList(String argumentsString, List<String> list){
 		StringBuilder builder = new StringBuilder();
 		boolean inQuotation = false;
-		for (char character : parameterString.toCharArray()){
+		for (char character : argumentsString.toCharArray()){
 			
 			if(character != ' ' && character != '"'){
 				builder.append(character);
 			} else if (character == ' ' && !inQuotation) {
 				if(builder.length() > 0){
-					commandOption.addParameter(builder.toString());
+					list.add(builder.toString());
 					builder = new StringBuilder();
 				}				
 			} else if (character == ' ' && inQuotation) {
@@ -82,7 +105,7 @@ public class MessageParsing {
 			} else if (character == '"'){
 				if(inQuotation){
 					if(builder.length() > 0){
-						commandOption.addParameter(builder.toString());
+						list.add(builder.toString());
 						builder = new StringBuilder();
 					}	
 					inQuotation = false;
@@ -90,6 +113,10 @@ public class MessageParsing {
 					inQuotation = true;
 				}
 			}
-		}		
+		}	
+	}
+	
+	private static void splitParametersIntoCommandOption(String parameterString, CommandOption commandOption){
+		splitArgumentsIntoList(parameterString, commandOption.getParameterList());
 	}
 }
