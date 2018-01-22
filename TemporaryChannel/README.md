@@ -1,3 +1,3 @@
-Invite Links
+Invite Link: https://discordapp.com/oauth2/authorize?client_id=367665720055824384&scope=bot&permissions=8
 
-TempChannels: https://discordapp.com/oauth2/authorize?client_id=367665720055824384&scope=bot&permissions=8
+Help Command: !help
