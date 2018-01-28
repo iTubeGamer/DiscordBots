@@ -7,44 +7,53 @@ import java.util.Set;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
 
-public class Game implements IGame{
+public abstract class Game implements IGame{
 	private IChannel channel;
-	private final String name;
+	private IUser gameOwner;
 	private GameState gameState;
 	private int round;
 	private Map<IUser, Integer> standings;
 	
-	public Game(String name, IChannel channel) {
+	public Game(IChannel channel) {
 		super();
-		this.name = name;
 		this.channel = channel;
 		this.gameState = GameState.GameSetup;
 		this.round = 0;
 		this.standings = new HashMap<>();
+		this.gameOwner = null;
+	}
+	
+	public Game(IChannel channel, IUser gameOwner) {
+		this(channel);
+		this.gameOwner = gameOwner;
 	}
 
 	public IChannel getChannel() {
 		return channel;
 	}
-
-	public void setChannel(IChannel channel) {
-		this.channel = channel;
+	
+	public IUser getGameOwner(){
+		return gameOwner;
+	}
+	
+	public void setGameOwner(IUser gameOwner){
+		this.gameOwner = gameOwner;
 	}
 
 	public GameState getGameState() {
 		return gameState;
 	}
 	
-	public void setGameState(GameState gameState) {
+	protected void setGameState(GameState gameState){
 		this.gameState = gameState;
-	}
-	
-	public String getName() {
-		return name;
 	}
 	
 	public void addPlayer(IUser user){
 		standings.put(user, 0);
+	}
+	
+	public void removePlayer(IUser player){
+		standings.remove(player);
 	}
 	
 	public Set<IUser> getPlayers(){
@@ -55,15 +64,15 @@ public class Game implements IGame{
 		return round;
 	}
 	
-	public void increaseRound() {
+	protected void increaseRound() {
 		this.round++;
 	}
 	
-	public int getPointsForPlayer(IUser player){
+	protected int getPointsForPlayer(IUser player){
 		return standings.get(player);
 	}
 	
-	public void setPointsForPlayer(IUser player, int points){
+	protected void setPointsForPlayer(IUser player, int points){
 		if(standings.containsKey(player)){
 			standings.put(player, points);
 		}

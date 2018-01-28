@@ -7,26 +7,24 @@ import sx.blah.discord.handle.obj.IUser;
 
 public interface IGame {
 	
+	public void start();
+	
+	public void stop();
+	
 	public IChannel getChannel();
 	
-	public void setChannel(IChannel channel);
+	public IUser getGameOwner();
+	
+	public void setGameOwner(IUser gameOwner);
 	
 	public GameState getGameState();
-	
-	public void setGameState(GameState gameState);
 	
 	public String getName();
 	
 	public void addPlayer(IUser user);
 	
+	public void removePlayer(IUser user);
+	
 	public Set<IUser> getPlayers();
-	
-	public int getRound();
-	
-	public void increaseRound();
-	
-	public int getPointsForPlayer(IUser player);
-	
-	public void setPointsForPlayer(IUser player, int points);
 
 }

@@ -9,13 +9,14 @@ import org.pmw.tinylog.labelers.TimestampLabeler;
 import org.pmw.tinylog.policies.DailyPolicy;
 import org.pmw.tinylog.writers.RollingFileWriter;
 
-import de.maxkroner.implementation.Bot;
+import de.maxkroner.factory.GameProducer;
+import de.maxkroner.factory.GuessThePicGameFactory;
 import de.maxkroner.implementation.GameMasterBot;
 import de.maxkroner.ui.UserInput;
 
 
 public class Main {
-	public static Bot bot;
+
 	private static Scanner scanner = new Scanner(System.in);
 	private static UserInput userInput = new UserInput(scanner);
 
@@ -35,9 +36,14 @@ public class Main {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		//add gameFactories 
+		GameProducer gameProducer = new GameProducer();
+		gameProducer.addGameFactory(new GuessThePicGameFactory());
 	
 		String token = args[0];			
-		bot = new GameMasterBot(token, scanner, userInput);
+		GameMasterBot bot = new GameMasterBot(token, scanner, userInput);
+		bot.setGameProducer(gameProducer);
 		Runtime.getRuntime().addShutdownHook(new ShutdownHook(bot));
 	}
 
