@@ -25,6 +25,7 @@ public class CheckTempChannelRunnable<E> implements Runnable {
 		this.tempChannelsByGuild = channelMap;
 	}
 
+	@Override
 	public void run() {
 		try {
 			// collect all TempChannels and delete them later

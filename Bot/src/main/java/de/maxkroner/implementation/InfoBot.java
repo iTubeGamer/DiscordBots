@@ -18,6 +18,7 @@ public class InfoBot extends Bot {
 
 	}
 	
+	@Override
 	@EventSubscriber
 	public void onReady(ReadyEvent event) {
 		super.onReady(event);

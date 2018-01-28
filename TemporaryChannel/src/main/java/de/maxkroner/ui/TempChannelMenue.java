@@ -28,6 +28,7 @@ public class TempChannelMenue extends BotMenue {
 		this.tempChannelsByGuild = tempChannelsByGuild;
 	}
 
+	@Override
 	public void startMenue(Bot bot) {
 		super.startMenue(bot);
 
