@@ -90,6 +90,7 @@ public class TempChannelBot extends Bot {
 	}
 
 	// ----- EVENT HANDLING ----- //
+	@Override
 	@EventSubscriber
 	public void onReady(ReadyEvent event) {
 		super.onReady(event);
@@ -163,6 +164,7 @@ public class TempChannelBot extends Bot {
 		}
 	}
 
+	@Override
 	@EventSubscriber
 	public void onMessageReceivedEvent(MessageReceivedEvent event) {
 

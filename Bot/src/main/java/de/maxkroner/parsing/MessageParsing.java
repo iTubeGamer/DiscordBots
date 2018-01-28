@@ -6,16 +6,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import sx.blah.discord.api.IDiscordClient;
-import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
-import sx.blah.discord.handle.impl.obj.User;
-import sx.blah.discord.handle.obj.IChannel;
-import sx.blah.discord.handle.obj.IDiscordObject;
-import sx.blah.discord.handle.obj.IGuild;
-import sx.blah.discord.handle.obj.IUser;
-import sx.blah.discord.util.MessageTokenizer;
-import sx.blah.discord.util.MessageTokenizer.MentionToken;
-
 /**
  * Parses Command-objects from messages.
  * There are 2 types of command-styles: argument-style and option-style
@@ -48,7 +38,7 @@ public class MessageParsing {
 					String optionsString = commandString.substring(commandString.indexOf(" ") + 1);
 					//split all options in own Strings
 					commandOptionStrings = optionsString.split(String.valueOf(commandSet.getOptionIdentifier()));
-					commandOptions = (List<CommandOption>) Arrays.stream(commandOptionStrings).map(String::trim).filter(s -> !s.isEmpty())
+					commandOptions = Arrays.stream(commandOptionStrings).map(String::trim).filter(s -> !s.isEmpty())
 							.map(s -> parseOptionFromString(s)).collect(Collectors.toList());
 					if (commandOptions.isEmpty()){
 						commandOptions = null;
