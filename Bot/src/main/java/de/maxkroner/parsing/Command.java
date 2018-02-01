@@ -33,6 +33,15 @@ public class Command {
 	public void setArguments(Optional<List<String>> arguments) {
 		this.arguments = arguments;
 	}
+	public boolean hasOptions(){
+		return getCommandOptions().isPresent();
+	}
+	public boolean hasArguments(){
+		return getArguments().isPresent();
+	}
+	public boolean hasOptionsOrArguments(){
+		return hasOptions() || hasArguments();
+	}
 	
 	
 

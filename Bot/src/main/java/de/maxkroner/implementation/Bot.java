@@ -171,13 +171,16 @@ public abstract class Bot {
 	}
 	
 	private void notifyReceivers(MessageReceivedEvent event, Command command) {
-		for(Method method: commandMethodsMap.get(command.getName())){
-			try {
-				method.invoke(this, event, command);
-			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-				e.printStackTrace();
+		if (commandMethodsMap.containsKey(command.getName())){
+			for(Method method: commandMethodsMap.get(command.getName())){
+				try {
+					method.invoke(this, event, command);
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+					e.printStackTrace();
+				}
 			}
 		}
+		
 		
 	}
 

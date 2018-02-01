@@ -4,10 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import sx.blah.discord.api.IDiscordClient;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
 
 public abstract class Game implements IGame{
+	private IDiscordClient client;
 	private IChannel channel;
 	private IUser gameOwner;
 	private GameState gameState;
@@ -23,9 +25,14 @@ public abstract class Game implements IGame{
 		this.gameOwner = null;
 	}
 	
-	public Game(IChannel channel, IUser gameOwner) {
+	public Game(IChannel channel, IUser gameOwner, IDiscordClient client) {
 		this(channel);
 		this.gameOwner = gameOwner;
+		this.client = client;
+	}
+	
+	protected IDiscordClient getClient(){
+		return client;
 	}
 
 	public IChannel getChannel() {
@@ -64,6 +71,10 @@ public abstract class Game implements IGame{
 		return round;
 	}
 	
+	protected void setRound(int round) {
+		this.round = round;
+	}
+	
 	protected void increaseRound() {
 		this.round++;
 	}
@@ -75,6 +86,12 @@ public abstract class Game implements IGame{
 	protected void setPointsForPlayer(IUser player, int points){
 		if(standings.containsKey(player)){
 			standings.put(player, points);
+		}
+	}
+	
+	protected void increasePointsForPlayer(IUser player){
+		if(standings.containsKey(player)){
+			standings.put(player, standings.get(player) + 1);
 		}
 	}
 
