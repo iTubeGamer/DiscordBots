@@ -1,4 +1,4 @@
-package reader;
+package de.maxkroner.reader;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,7 +20,6 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class ImageUrlReader {
-	private static final String cx = "014357723537713710519:earmz8ohk6k"; //custom google search id
 	private static final String url_pattern = "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&start=%d&searchType=image&fileType=\"jpg%%20png\"";
 	private static final OkHttpClient client = new OkHttpClient();
 
@@ -34,13 +33,16 @@ public class ImageUrlReader {
 		
 		try{	
 			
-			String url = String.format(url_pattern, Keys.google_api_key, cx, term, start);
+			String url = String.format(url_pattern, Keys.google_api_key, Keys.google_search_id, term, start);
 		
 			return httpGet(url) //get HTTP Result as Optional<String>
-							.map(JSONObject::new) //get JSON Object from JSON
+							.map(JSONObject::new) //get JSON Object from JSON String
 							.flatMap(T -> Optional.of(T.optJSONArray("items"))).map(JSONArray::toList) //List of Objects in "items"
-							.map(T -> T.stream().map(Z -> (String) ((HashMap) Z).get("link")) //get link as String from every item
-							.collect(Collectors.toList())).orElse(Collections.emptyList());
+							.map(T -> T.stream().map(ImageUrlReader::getLinkFromItem) //try to retrieve an image-link from objects
+												.filter(Optional::isPresent) //only continue with objects where image link was found
+												.map(Optional::get)
+												.collect(Collectors.toList()))					
+							.orElse(Collections.emptyList()); //return emptyList if it fails at some point
 		
 		} catch (Exception e){
 			Logger.error(e);
@@ -61,6 +63,16 @@ public class ImageUrlReader {
 		} catch (IOException e) {
 			return Optional.empty();
 		}
+	}
+	
+	private static Optional<String> getLinkFromItem(Object item){
+		try{
+			return Optional.of((String) ((HashMap) item).get("link"));
+		} catch (Exception e){
+			Logger.error(e);
+			return Optional.empty();
+		}
+		
 	}
 
 }

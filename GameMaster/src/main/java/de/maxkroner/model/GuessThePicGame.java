@@ -15,8 +15,8 @@ import java.util.concurrent.TimeUnit;
 import org.pmw.tinylog.Logger;
 
 import de.maxkroner.implementation.runnable.DisplayNextImageRunnable;
+import de.maxkroner.reader.ImageUrlReader;
 import de.maxkroner.values.Values;
-import reader.ImageUrlReader;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
