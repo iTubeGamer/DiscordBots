@@ -6,24 +6,27 @@ import java.util.Map;
 import java.util.Scanner;
 
 import de.maxkroner.factory.GameProducer;
+import de.maxkroner.model.GameService;
 import de.maxkroner.model.GameState;
 import de.maxkroner.model.IGame;
 import de.maxkroner.parsing.Command;
 import de.maxkroner.parsing.CommandHandler;
 import de.maxkroner.ui.BotMenue;
 import de.maxkroner.ui.UserInput;
+import de.maxkroner.values.Keys;
 import de.maxkroner.values.Values;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.obj.IChannel;
 
-public class GameMasterBot extends Bot {
+public class GameMasterBot extends Bot implements GameService {
 	private GameProducer producer;
 	private Map<IChannel, IGame> gameList = new HashMap<>();
 
 	public GameMasterBot(String token, Scanner scanner, UserInput userInput) {
 		super(token, new BotMenue(scanner, userInput));
 		addCommandParsing(this.getClass(), Values.PREFIX, Values.OPTION_PREFIX);
+		Keys.readKeys();
 	}
 
 	public void setGameProducer(GameProducer producer) {
@@ -46,9 +49,11 @@ public class GameMasterBot extends Bot {
 
 			String name = command.getArguments().get().get(0);
 
-			producer.createGame(name, event).ifPresent(T -> gameList.put(event.getChannel(), T));
-			
-			sendMessage(Values.getMessageString(Values.MESSAGE_CREATE_GAME_SUCCESS, gameList.get(event.getChannel()).getName()), event.getChannel(), false);
+			producer.createGame(this, name, event).ifPresent(T -> {
+				gameList.put(event.getChannel(), T);
+				sendMessage(Values.getMessageString(Values.MESSAGE_CREATE_GAME_SUCCESS, gameList.get(event.getChannel()).getName()),
+						event.getChannel(), false);
+			});
 
 		}
 	}
@@ -56,31 +61,31 @@ public class GameMasterBot extends Bot {
 	@CommandHandler(Values.COMMAND_JOIN)
 	protected void joinGame(MessageReceivedEvent event, Command command) {
 		if (!command.hasOptionsOrArguments() && gameList.containsKey(event.getChannel())) {
-		
+
 			IGame game = gameList.get(event.getChannel());
-			if(!game.getPlayers().contains(event.getAuthor())){
+			if (!game.getPlayers().contains(event.getAuthor())) {
 				game.addPlayer(event.getAuthor());
 				sendMessage(Values.getMessageString(Values.MESSAGE_PLAYER_JOINED, event.getAuthor().toString()), event.getChannel(), false);
 			} else {
 				sendMessage(Values.getMessageString(Values.MESSAGE_ALREADY_ON_PLAYERLIST, event.getAuthor().toString()), event.getChannel(), false);
 			}
-		
+
 		}
 	}
-	
+
 	@CommandHandler(Values.COMMAND_START)
 	protected void startGame(MessageReceivedEvent event, Command command) {
 		if (!command.hasOptionsOrArguments() && gameList.containsKey(event.getChannel())) {
-			
+
 			IGame game = gameList.get(event.getChannel());
-			
-			if(game.getGameState() == GameState.GameSetup){
+
+			if (game.getGameState() == GameState.GameSetup) {
 				game.start();
-			}	
+			}
 		}
-		
+
 	}
-	
+
 	@CommandHandler(Values.COMMAND_SCOREBOARD)
 	protected void scoreBoard(MessageReceivedEvent event, Command command) {
 		if (!command.hasOptionsOrArguments() && gameList.containsKey(event.getChannel())) {
@@ -88,42 +93,52 @@ public class GameMasterBot extends Bot {
 			game.printScoreBoard();
 		}
 	}
-	
+
 	@CommandHandler(Values.COMMAND_GTP_NEXT_ROUND)
 	protected void nextRound(MessageReceivedEvent event, Command command) {
 		if (!command.hasOptionsOrArguments() && gameList.containsKey(event.getChannel())) {
 			IGame game = gameList.get(event.getChannel());
-			if(game.getGameOwner().equals(event.getAuthor())){
+			if (game.getGameOwner().equals(event.getAuthor())) {
 				game.nextRound();
 			}
 		}
 	}
-	
+
 	@CommandHandler(Values.COMMAND_STOP)
 	protected void stopGame(MessageReceivedEvent event, Command command) {
 		if (!command.hasOptionsOrArguments() && gameList.containsKey(event.getChannel())) {
-			
+
 			IGame game = gameList.get(event.getChannel());
-			
-			if(game.getGameOwner().equals(event.getAuthor())){
+
+			if (game.getGameOwner().equals(event.getAuthor())) {
 				game.stop();
-				sendMessage(Values.getMessageString(Values.MESSAGE_GAME_OVER, game.getName()), event.getChannel(), false);
-				gameList.remove(event.getChannel());
+				gameStopped(game);
 			}
-			
-		}	
+
+		}
 	}
-	
+
 	@EventSubscriber
 	public void onMessageReceivedEvent(MessageReceivedEvent event) {
 		super.onMessageReceivedEvent(event);
-		
-		if(gameList.containsKey(event.getChannel())){
+
+		if (gameList.containsKey(event.getChannel())) {
 			IGame game = gameList.get(event.getChannel());
-			if (game.getPlayers().contains(event.getAuthor())){
+			if (game.getPlayers().contains(event.getAuthor())) {
 				game.onMessageReceivedEvent(event);
 			}
 		}
+	}
+
+	@Override
+	public void sendMessage(String message, IChannel channel, boolean tts) {
+		super.sendMessage(message, channel, tts);
+	}
+
+	@Override
+	public void gameStopped(IGame game) {
+		sendMessage(Values.getMessageString(Values.MESSAGE_GAME_OVER, game.getName()), game.getChannel(), false);
+		gameList.remove(game.getChannel());
 	}
 
 }

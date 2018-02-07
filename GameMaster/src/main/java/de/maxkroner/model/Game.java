@@ -1,23 +1,26 @@
 package de.maxkroner.model;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import sx.blah.discord.api.IDiscordClient;
+import de.maxkroner.util.MapUtil;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
 
 public abstract class Game implements IGame{
-	private IDiscordClient client;
+	private GameService gameService;
 	private IChannel channel;
 	private IUser gameOwner;
 	private GameState gameState;
 	private int round;
 	private Map<IUser, Integer> standings;
 	
-	public Game(IChannel channel) {
+	public Game(GameService gameService, IChannel channel) {
 		super();
+		this.gameService = gameService;
 		this.channel = channel;
 		this.gameState = GameState.GameSetup;
 		this.round = 0;
@@ -25,14 +28,13 @@ public abstract class Game implements IGame{
 		this.gameOwner = null;
 	}
 	
-	public Game(IChannel channel, IUser gameOwner, IDiscordClient client) {
-		this(channel);
+	public Game(IChannel channel, IUser gameOwner, GameService gameService) {
+		this(gameService, channel);
 		this.gameOwner = gameOwner;
-		this.client = client;
 	}
 	
-	protected IDiscordClient getClient(){
-		return client;
+	protected GameService getGameService(){
+		return gameService;
 	}
 
 	public IChannel getChannel() {
@@ -65,6 +67,10 @@ public abstract class Game implements IGame{
 	
 	public Set<IUser> getPlayers(){
 		return standings.keySet();
+	}
+	
+	public List<IUser> getPlayersSortedByScore(){
+		return MapUtil.sortByValue(standings).keySet().stream().collect(Collectors.toList());
 	}
 	
 	public int getRound() {

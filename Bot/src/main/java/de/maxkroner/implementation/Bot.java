@@ -24,6 +24,7 @@ import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.util.DiscordException;
 import sx.blah.discord.util.Image;
 import sx.blah.discord.util.MessageBuilder;
+import sx.blah.discord.util.RequestBuffer;
 
 public abstract class Bot {
 	private String bot_name = "";
@@ -112,11 +113,19 @@ public abstract class Bot {
 	public abstract void disconnect();
 	
 	protected void sendMessage(String message, IChannel channel, Boolean tts) {
-		MessageBuilder mb = new MessageBuilder(this.client).withChannel(channel);
-		if (tts)
-			mb.withTTS();
-		mb.withContent(message);
-		mb.build();
+		RequestBuffer.request(() -> {
+			try{
+				MessageBuilder mb = new MessageBuilder(this.client).withChannel(channel);
+				if (tts)
+					mb.withTTS();
+				mb.withContent(message);
+				mb.build();
+			} catch (DiscordException e){
+				Logger.warn(e);
+				throw e;
+			}
+		});
+		
 	}
 	
 	protected void sendPrivateMessage(IUser recepient, String message) {

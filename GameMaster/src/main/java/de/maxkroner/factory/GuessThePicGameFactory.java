@@ -1,5 +1,6 @@
 package de.maxkroner.factory;
 
+import de.maxkroner.model.GameService;
 import de.maxkroner.model.GuessThePicGame;
 import de.maxkroner.model.IGame;
 import de.maxkroner.values.Values;
@@ -18,8 +19,8 @@ public class GuessThePicGameFactory implements IGameFactory{
 	}
 
 	@Override
-	public IGame createGame(MessageReceivedEvent event) {
-		GuessThePicGame game = new GuessThePicGame(event.getChannel(), event.getAuthor());
+	public IGame createGame(GameService gameService, MessageReceivedEvent event) {
+		GuessThePicGame game = new GuessThePicGame(gameService, event.getChannel(), event.getAuthor());
 		game.addPlayer(event.getAuthor());
 		return game;	
 	}

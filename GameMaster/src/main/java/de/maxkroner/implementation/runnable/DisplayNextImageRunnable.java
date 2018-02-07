@@ -2,19 +2,23 @@ package de.maxkroner.implementation.runnable;
 
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.pmw.tinylog.Logger;
 
+import de.maxkroner.model.GameService;
+import de.maxkroner.model.GuessThePicGame;
 import de.maxkroner.values.Values;
 import sx.blah.discord.api.IDiscordClient;
 import sx.blah.discord.handle.obj.IChannel;
+import sx.blah.discord.util.DiscordException;
 import sx.blah.discord.util.EmbedBuilder;
 import sx.blah.discord.util.MessageBuilder;
 import sx.blah.discord.util.RequestBuffer;
 
 public class DisplayNextImageRunnable<E> implements Runnable {
-	private IDiscordClient client;
+	private GameService gameService;
 	private IChannel channel;
 	private List<String> urls;
 	private String word;
@@ -22,9 +26,9 @@ public class DisplayNextImageRunnable<E> implements Runnable {
 	private AtomicInteger hint_count;
 
 
-	public DisplayNextImageRunnable(IDiscordClient client, IChannel channel, List<String> urls, String word) {
+	public DisplayNextImageRunnable(GameService gameService, IChannel channel, List<String> urls, String word) {
 		super();
-		this.client = client;
+		this.gameService = gameService;
 		this.channel = channel;
 		this.urls = urls;
 		this.word = word;
@@ -36,7 +40,7 @@ public class DisplayNextImageRunnable<E> implements Runnable {
 	public void run() {		
 		try{
 			if(image_count.get() < Values.MAX_IMAGES_SHOWN && image_count.get() < urls.size()){
-				sendImage(urls.get(image_count.get()));
+				sendImage(getRandomUrl());
 				image_count.getAndIncrement();
 			} else if(hint_count.get() == 0) {
 				sendMessage(Values.getMessageString(Values.MESSAGE_GTP_HINT_1, getHint1()));
@@ -54,10 +58,17 @@ public class DisplayNextImageRunnable<E> implements Runnable {
 		
 	}
 	
+	private String getRandomUrl(){
+		int index = ThreadLocalRandom.current().nextInt(0, urls.size());
+		String url = urls.get(index);
+		GuessThePicGame.lastUrl = url;
+		urls.remove(index);
+		return url;
+	}
+	
 	private void sendMessage(String message) {
-		MessageBuilder mb = new MessageBuilder(client).withChannel(channel);
-		mb.withContent(message);
-		mb.build();
+		gameService.sendMessage(message, channel, false);
+		
 	}
 	
 	private void sendImage(String url){
