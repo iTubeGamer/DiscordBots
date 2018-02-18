@@ -23,7 +23,7 @@ public abstract class Database {
 			DB_CONNECTION = "jdbc:h2:~/" + name + ";MV_STORE=FALSE;MVCC=FALSE";
 			Class.forName(DB_DRIVER);
 			conn = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
-		} catch (ClassNotFoundException | SQLException e) {
+		} catch (Exception e) {
 			Logger.error("Database connection failed.");
 			e.printStackTrace();
 		}		
@@ -48,12 +48,12 @@ public abstract class Database {
 		}	
 	}
 	
-	protected void dropAllTables()
+	public void dropAllTables()
 	{
 		executeStatement(Values.SQL_DROP_ALL_TABLES);
 	}
 	
-	protected ResultSet getResultSetFromQuery(String query) {
+	public ResultSet getResultSetFromQuery(String query) {
 		Statement std;
 		try {
 			std = conn.createStatement();

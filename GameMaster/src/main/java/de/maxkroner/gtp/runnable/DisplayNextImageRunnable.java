@@ -1,36 +1,29 @@
-package de.maxkroner.implementation.runnable;
+package de.maxkroner.gtp.runnable;
 
 
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.pmw.tinylog.Logger;
 
+import de.maxkroner.gtp.database.Word;
 import de.maxkroner.model.GameService;
-import de.maxkroner.model.GuessThePicGame;
 import de.maxkroner.values.Values;
-import sx.blah.discord.api.IDiscordClient;
 import sx.blah.discord.handle.obj.IChannel;
-import sx.blah.discord.util.DiscordException;
 import sx.blah.discord.util.EmbedBuilder;
-import sx.blah.discord.util.MessageBuilder;
 import sx.blah.discord.util.RequestBuffer;
 
 public class DisplayNextImageRunnable<E> implements Runnable {
 	private GameService gameService;
 	private IChannel channel;
-	private List<String> urls;
-	private String word;
+	private Word word;
 	private AtomicInteger image_count;
 	private AtomicInteger hint_count;
 
 
-	public DisplayNextImageRunnable(GameService gameService, IChannel channel, List<String> urls, String word) {
+	public DisplayNextImageRunnable(GameService gameService, IChannel channel, Word word) {
 		super();
 		this.gameService = gameService;
 		this.channel = channel;
-		this.urls = urls;
 		this.word = word;
 		image_count = new AtomicInteger(0);	
 		hint_count = new AtomicInteger(0);
@@ -39,8 +32,8 @@ public class DisplayNextImageRunnable<E> implements Runnable {
 	@Override
 	public void run() {		
 		try{
-			if(image_count.get() < Values.MAX_IMAGES_SHOWN && image_count.get() < urls.size()){
-				sendImage(getRandomUrl());
+			if(image_count.get() < Values.IMAGES_SHOWN_PER_ROUND){
+				sendImage(word.getAndRemoveUrl());
 				image_count.getAndIncrement();
 			} else if(hint_count.get() == 0) {
 				sendMessage(Values.getMessageString(Values.MESSAGE_GTP_HINT_1, getHint1()));
@@ -56,14 +49,6 @@ public class DisplayNextImageRunnable<E> implements Runnable {
 			Logger.error(e);
 		}
 		
-	}
-	
-	private String getRandomUrl(){
-		int index = ThreadLocalRandom.current().nextInt(0, urls.size());
-		String url = urls.get(index);
-		GuessThePicGame.lastUrl = url;
-		urls.remove(index);
-		return url;
 	}
 	
 	private void sendMessage(String message) {
@@ -83,26 +68,26 @@ public class DisplayNextImageRunnable<E> implements Runnable {
 	
 	private String getHint1(){
 		return new StringBuilder()
-				.append(word.substring(0, 1))
-				.append(getStarsString(word.length() - 1))
+				.append(word.getWord().substring(0, 1))
+				.append(getStarsString(word.getWord().length() - 1))
 				.toString();
 	}
 	
 	private String getHint2(){
 		return new StringBuilder()
-					.append(getStarsString(word.length() - 1))
-					.append(word.substring(word.length() -1, word.length()))
+					.append(getStarsString(word.getWord().length() - 1))
+					.append(word.getWord().substring(word.getWord().length() -1, word.getWord().length()))
 					.toString();
 	}
 	
 	private String getHint3(){
-		if(word.length() >= 5){
+		if(word.getWord().length() >= 5){
 			return new StringBuilder()
 					.append(getStarsString(2))
-					.append(word.substring(2, word.length() - 2))
+					.append(word.getWord().substring(2, word.getWord().length() - 2))
 					.append(getStarsString(2))
 					.toString();
-		} else return word;
+		} else return word.getWord();
 		
 	}
 	

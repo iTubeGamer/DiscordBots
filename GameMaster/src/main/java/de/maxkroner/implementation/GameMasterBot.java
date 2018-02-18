@@ -2,10 +2,12 @@ package de.maxkroner.implementation;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
 import de.maxkroner.factory.GameProducer;
+import de.maxkroner.gtp.values.Keys;
 import de.maxkroner.model.GameService;
 import de.maxkroner.model.GameState;
 import de.maxkroner.model.IGame;
@@ -13,7 +15,6 @@ import de.maxkroner.parsing.Command;
 import de.maxkroner.parsing.CommandHandler;
 import de.maxkroner.ui.BotMenue;
 import de.maxkroner.ui.UserInput;
-import de.maxkroner.values.Keys;
 import de.maxkroner.values.Values;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
@@ -26,7 +27,6 @@ public class GameMasterBot extends Bot implements GameService {
 	public GameMasterBot(String token, Scanner scanner, UserInput userInput) {
 		super(token, new BotMenue(scanner, userInput));
 		addCommandParsing(this.getClass(), Values.PREFIX, Values.OPTION_PREFIX);
-		Keys.readKeys();
 	}
 
 	public void setGameProducer(GameProducer producer) {
@@ -40,16 +40,16 @@ public class GameMasterBot extends Bot implements GameService {
 
 	@CommandHandler(Values.COMMAND_CREATE)
 	protected void createGame(MessageReceivedEvent event, Command command) {
-		if ((command.getArguments().orElse(Collections.emptyList()).size() == 1) && !command.hasOptions()) {
+		if ((command.getArguments().orElse(Collections.emptyList()).size() >= 1) && !command.hasOptions()) {
 			if (gameList.containsKey(event.getChannel())) {
 				event.getAuthor().getOrCreatePMChannel()
 						.sendMessage(Values.getMessageString(Values.MESSAGE_CREATE_GAME_ALREADY_EXISTS, event.getChannel().getName()));
 				return;
 			}
+			
+			List<String> args = command.getArguments().get();
 
-			String name = command.getArguments().get().get(0);
-
-			producer.createGame(this, name, event).ifPresent(T -> {
+			producer.createGame(this, args, event).ifPresent(T -> {
 				gameList.put(event.getChannel(), T);
 				sendMessage(Values.getMessageString(Values.MESSAGE_CREATE_GAME_SUCCESS, gameList.get(event.getChannel()).getName()),
 						event.getChannel(), false);

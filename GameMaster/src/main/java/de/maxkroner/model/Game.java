@@ -33,6 +33,13 @@ public abstract class Game implements IGame{
 		this.gameOwner = gameOwner;
 	}
 	
+	/**
+	 * This method is called once during bot startup on every game.
+	 */
+	public static void initialize(){
+		
+	}
+	
 	protected GameService getGameService(){
 		return gameService;
 	}

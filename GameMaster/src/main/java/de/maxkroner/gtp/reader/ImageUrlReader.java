@@ -1,4 +1,4 @@
-package de.maxkroner.reader;
+package de.maxkroner.gtp.reader;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
@@ -15,7 +16,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.pmw.tinylog.Logger;
 
-import de.maxkroner.values.Keys;
+import de.maxkroner.gtp.values.Keys;
 import de.maxkroner.values.Values;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -41,7 +42,7 @@ public class ImageUrlReader {
 			
 			while(urls.size() < amount){
 
-				urls.addAll(getJSONResponseFor(term, start) //get HTTP Result as Optional<String>
+				List<String> newUrls = getJSONResponseFor(term, start) //get HTTP Result as Optional<String>
 								.flatMap(T -> Optional.of(T.optJSONArray("items"))).map(JSONArray::toList) //List of Objects in "items"
 								.map(T -> T.stream().map(ImageUrlReader::getLinkFromItem) //try to retrieve an image-link from objects
 													.map(ImageUrlReader::increaseStart)
@@ -49,8 +50,14 @@ public class ImageUrlReader {
 													.map(Optional::get)
 													.filter(X -> X.matches(Values.URL_PATTERN))
 													.collect(Collectors.toList()))					
-								.orElse(Collections.emptyList())//return emptyList if it fails at some point
-								);  
+								.orElse(Collections.emptyList());//return emptyList if it fails at some point
+				
+				if(newUrls.isEmpty()){
+					return newUrls;
+				}
+				
+				urls.addAll(newUrls);
+								 
 			}
 			
 			return urls;
@@ -109,6 +116,7 @@ public class ImageUrlReader {
 		return Optional.of(json);
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private static Optional<String> getLinkFromItem(Object item){
 		try{
 			return Optional.of((String) ((HashMap) item).get("link"));
@@ -116,6 +124,15 @@ public class ImageUrlReader {
 			Logger.error(e);
 			return Optional.empty();
 		}
+	}
+
+	public static void addImageUrlsToWordList(WordListTO wordList) {
+		Set<String> words = wordList.getWordMap().keySet();
+		for (String word : words) {
+			List<String> urlsForWord = getImageUrlsForTerm(word, Values.IMAGES_PER_WORD_IN_DB);
+			wordList.addUrlForWord(word, urlsForWord);
+		}
+		
 	}
 	
 	

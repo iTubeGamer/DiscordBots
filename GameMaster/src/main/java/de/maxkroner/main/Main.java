@@ -10,7 +10,7 @@ import org.pmw.tinylog.policies.DailyPolicy;
 import org.pmw.tinylog.writers.RollingFileWriter;
 
 import de.maxkroner.factory.GameProducer;
-import de.maxkroner.factory.GuessThePicGameFactory;
+import de.maxkroner.gtp.implementation.GuessThePicGameFactory;
 import de.maxkroner.implementation.GameMasterBot;
 import de.maxkroner.ui.UserInput;
 

@@ -54,6 +54,7 @@ public class Values {
 	public static final String SQL_DROP_ALL_TABLES = "DROP ALL OBJECTS DELETE FILES";
 	
 	//---GuessThePic---//
+	
 	public static final String MESSAGE_GTP_NEW_ROUND = "Starting Round {}";
 	
 	public static final String MESSAGE_GTP_QUESTION = "What am I searching for on google images?";
@@ -64,16 +65,22 @@ public class Values {
 	
 	public static final String MESSAGE_GTP_HINT_1 = "`Hint: {}`";
 	
-	public static final String MESSAGE_ERROR_IMAGE_SERVICE = "Image-Service currently not available :(";
+	public static final String MESSAGE_GTP_INVALID_LIST = "The list {} does not exist.";
+	
+	public static final String MESSAGE_ERROR = "An error occured :(";
 	
 	public static final String MESSAGE_SQL_ERROR_NESTING = "Can not nest two lists into each other!";
 	
 	public static final String COMMAND_GTP_NEXT_ROUND = "nextround";
 	public static final String COMMAND_GTP_NEXT_ROUND_USAGE = PREFIX + COMMAND_GTP_NEXT_ROUND;
 	
-	public static final int MAX_IMAGES_SHOWN = 3;
+	public static final int IMAGES_SHOWN_PER_ROUND = 3;
+	
+	public static final int SHOW_IMAGE_DELAY = 20;
 	
 	public static final int ROUND_DELAY_IN_SECONDS = 1;
+	
+	public static final int IMAGES_PER_WORD_IN_DB = 15;
 	
 	public static final String URL_PATTERN = "^[0-9a-zA-Z\\/\\$\\-_.+!*'(),,;?:@=& ]{5,500}\\.(jpg|Jpg|JPG|jpeg|JPEG|png|Png|PNG)$";
 	
@@ -81,7 +88,8 @@ public class Values {
 				"image_id bigint auto_increment PRIMARY KEY, " +
 				"url varchar(255) NOT NULL, " +
 				"word_id bigint, " +
-				"FOREIGN KEY(word_id) REFERENCES words(word_id))";
+				"FOREIGN KEY(word_id) REFERENCES words(word_id)," +
+				"CONSTRAINT UC_Image UNIQUE (url,word_id));";
 	
 	public static final String GTP_SQL_CREATE_WORDS = "CREATE TABLE IF NOT EXISTS words(" +
 			"word_id bigint auto_increment PRIMARY KEY," +

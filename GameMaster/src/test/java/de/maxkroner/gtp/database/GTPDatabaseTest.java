@@ -1,7 +1,8 @@
-package de.maxkroner.database;
+package de.maxkroner.gtp.database;
 
 import org.junit.Test;
 
+import de.maxkroner.gtp.database.GTPDatabase;
 import de.maxkroner.values.Values;
 
 import static org.junit.Assert.fail;
