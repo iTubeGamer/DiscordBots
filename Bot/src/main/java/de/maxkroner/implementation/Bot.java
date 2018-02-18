@@ -85,8 +85,13 @@ public abstract class Bot {
 		try{
 		if(commandMethodsMap != null && !commandMethodsMap.keySet().isEmpty()){
 			Command command = MessageParsing.parseMessageWithCommandSet(event.getMessage().getContent(), commandMethodsMap.keySet(), getCommandPrefixForGuild(event.getGuild()), optionIdentifier);
-			if(command != null && commandIsEnabledOnGuild(aliasCommandMap.get(command.getName()), event.getGuild())){
-				notifyReceivers(event, command);
+			if(command != null){
+				if(commandIsEnabledOnGuild(aliasCommandMap.get(command.getName()), event.getGuild())){
+					notifyReceivers(event, command);
+				} else {
+					sendMessage("The command `" + aliasCommandMap.get(command.getName()) + "` is disabled on the server `" + event.getGuild().getName() + "`", event.getAuthor().getOrCreatePMChannel(), false);
+				}
+				
 			}
 		}
 		} catch(Exception e){
@@ -110,7 +115,7 @@ public abstract class Bot {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		if(command.hasArguments() && !command.hasOptions() && command.getArguments().get().size() == 1){
 			if(!event.getGuild().getOwner().equals(event.getAuthor())){
-				sendMessage("This command may only be used by the server owner.", event.getChannel(), false);
+				sendMessage("This command can only be used by the server owner.", event.getChannel(), false);
 				return;
 			}
 			String prefix = command.getArguments().get().get(0).trim();
@@ -307,7 +312,7 @@ public abstract class Bot {
 	
 	private boolean commandEnOrDisablingIsOk(MessageReceivedEvent event, String commandName) {
 		if(!event.getGuild().getOwner().equals(event.getAuthor())){
-			sendMessage("This command may only be used by the server owner.", event.getChannel(), false);
+			sendMessage("This command can only be used by the server owner.", event.getChannel(), false);
 			return false;
 		}
 		
