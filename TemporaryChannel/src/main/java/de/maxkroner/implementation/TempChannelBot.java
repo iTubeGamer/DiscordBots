@@ -425,9 +425,9 @@ public class TempChannelBot extends Bot {
 	}
 
 	private void movePlayersToChannel(List<IUser> playersToMove, IVoiceChannel channel, IUser author) {
+		// only move players who are in the same voice channel as the author
+		IChannel authorChannel = author.getVoiceStateForGuild(channel.getGuild()).getChannel();
 		for (IUser user : playersToMove) {
-			// only move players who are in the same voice channel as the author
-			IChannel authorChannel = author.getVoiceStateForGuild(channel.getGuild()).getChannel();
 			if (user.getVoiceStateForGuild(channel.getGuild()).getChannel() == authorChannel) {
 				user.moveToVoiceChannel(channel);
 			} else {
@@ -437,7 +437,6 @@ public class TempChannelBot extends Bot {
 		if (!playersToMove.isEmpty()) {
 			Logger.info("Moved players: {}", playersToMove.stream().map(n -> n.getName()).collect(Collectors.joining(", ")));
 		}
-		;
 	}
 
 	private void setChannelPermissions(IUser owner, List<IUser> allowedUsers, IGuild guild, IVoiceChannel channel) {
