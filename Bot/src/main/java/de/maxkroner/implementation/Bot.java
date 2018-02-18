@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import org.discordbots.api.client.DiscordBotListAPI;
 import org.pmw.tinylog.Logger;
 
 import de.maxkroner.parsing.MessageParsing;
@@ -40,6 +41,7 @@ public abstract class Bot {
 	private String commandPrefix;
 	private Character optionIdentifier;
 	private Instant startup;
+	protected DiscordBotListAPI api;
 	
 	public IDiscordClient getClient() {
 		return this.client;
@@ -326,6 +328,17 @@ public abstract class Bot {
 			return false;
 		}
 		return true;
+	}
+	
+	protected void updateGuildCount(int count, String token, String botId){
+		if(api == null){
+			api = new DiscordBotListAPI.Builder()
+	                .token(token)
+	                .build();
+		}
+		
+		api.setStats(botId, count);
+		Logger.info("Updated guild count for bot " + botId);
 	}
 
 }

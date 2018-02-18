@@ -39,6 +39,7 @@ import de.maxkroner.parsing.OptionParsing;
 import de.maxkroner.to.TempChannelTO;
 import de.maxkroner.ui.TempChannelMenue;
 import de.maxkroner.ui.UserInput;
+import de.maxkroner.values.Keys;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.impl.events.guild.GuildCreateEvent;
@@ -72,10 +73,6 @@ public class TempChannelBot extends Bot {
 	private static final String file_name = "tempChannels.ser";
 	private static String home = "";
 	private static boolean still_in_startup_mode = true;
-
-	static {
-		fileToArray("channelnames.txt", channelNames, 0);
-	}
 
 	public TempChannelBot(String token, Scanner scanner, UserInput userInput) {
 		super(token, new TempChannelMenue(scanner, userInput, tempChannelsByGuild), "tempchannels");
@@ -129,6 +126,7 @@ public class TempChannelBot extends Bot {
 				importStashedChannelsForGuild(guild);
 				removeUnknownChannelsForGuild(guild);
 			}
+			updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
 		}
 	}
 
