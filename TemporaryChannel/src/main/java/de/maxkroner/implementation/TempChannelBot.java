@@ -94,7 +94,6 @@ public class TempChannelBot extends Bot {
 	@EventSubscriber
 	public void onReady(ReadyEvent event) {
 		super.onReady(event);
-		readChannelNames();
 
 		// create tempChannelMaps
 		for (IGuild guild : getClient().getGuilds()) {
@@ -200,7 +199,7 @@ public class TempChannelBot extends Bot {
 
 	@CommandHandler({"create", "c", "new"})
 	protected void executeChannelCommand(MessageReceivedEvent event, Command command) {
-		String name = getRandomName();
+		String name = null;
 		List<IUser> allowedUsers = null; // null = everyone allowed in the new channel
 		List<IUser> movePlayers = new ArrayList<IUser>(); // players to move in the new channel
 		int limit = 0;
@@ -242,6 +241,11 @@ public class TempChannelBot extends Bot {
 				movePlayers.addAll(allowedUsers);
 				movePlayers.add(event.getAuthor());
 			}
+			
+			//if no name was given create fitting name
+			if(name == null){
+				name = createChannelName(event.getAuthor(), event.getGuild());
+			}		
 		}
 
 		if (errorMessages.isEmpty()) {
@@ -478,23 +482,6 @@ public class TempChannelBot extends Bot {
 	}
 
 	// ----- HELPER METHODS ----- //
-	private void readChannelNames() {
-		String line = "";
-		ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-		InputStream is = classloader.getResourceAsStream("channelnames.txt");
-
-		try {
-			BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-			if (is != null) {
-				while ((line = reader.readLine()) != null) {
-					channelNames.add(line);
-				}
-			}
-		} catch (IOException e) {
-			Logger.error(e);
-		}
-
-	}
 
 	private static void fileToArray(String fileName, List<String> list, int maxLength) {
 		try (InputStream is = TempChannelBot.class.getClassLoader().getResourceAsStream(fileName)) {
@@ -511,22 +498,6 @@ public class TempChannelBot extends Bot {
 
 	private int getUserChannelCountOnGuild(IUser user, IGuild guild) {
 		return tempChannelsByGuild.get(guild).getUserChannelCount(user);
-	}
-
-	private String getRandomName() {
-		int index = ThreadLocalRandom.current().nextInt(0, channelNames.size());
-
-		return channelNames.get(index);
-	}
-
-	private String getRandomChannelEmoji(IGuild guild) {
-		List<IEmoji> channelEmojis = guild.getEmojis();
-		if (!channelEmojis.isEmpty()) {
-			int index = ThreadLocalRandom.current().nextInt(0, channelEmojis.size());
-			return channelEmojis.get(index).toString();
-		}
-
-		return "";
 	}
 
 	/**
@@ -736,5 +707,31 @@ public class TempChannelBot extends Bot {
 
 		return true;
 	}
+	
+	 private String createChannelName(IUser user, IGuild guild) {
+	        ArrayList<TempChannel> userChannels = tempChannelsByGuild.get(guild).getTempChannelListForUser(user);
+	        if (userChannels.size() == 0) {
+	            return String.valueOf(user.getName()) + " #1";
+	        }
+	        return this.findFreeChannelNameForUser(user, userChannels);
+	    }
+	
+    private String findFreeChannelNameForUser(IUser user, ArrayList<TempChannel> userChannels) {
+        int i = 1;
+        while (i <= USER_CHANNEL_LIMIT) {
+            String channelname = String.valueOf(user.getName()) + " #" + i;
+            boolean channelexists = false;
+            for (TempChannel userChannel : userChannels) {
+                if (!userChannel.getChannel().getName().equals(channelname)) continue;
+                channelexists = true;
+                break;
+            }
+            if (!channelexists) {
+                return channelname;
+            }
+            ++i;
+        }
+        return user.getName();
+    }
 
 }
