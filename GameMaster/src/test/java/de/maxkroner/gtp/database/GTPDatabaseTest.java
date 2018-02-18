@@ -21,8 +21,7 @@ public class GTPDatabaseTest {
 	@Test
 	public void createDatabaseTables() throws SQLException{
 		//GIVEN
-		db.dropAllTables();
-		db.createTablesIfNotExist();
+		db.resetDatabase();
 
 		//THEN
 		assertThat(db.getRowCount("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'IMAGES'"), is(1));
@@ -38,8 +37,7 @@ public class GTPDatabaseTest {
 	@Test
 	public void addList() throws SQLException{
 		//GIVEN
-		db.dropAllTables();
-		db.createTablesIfNotExist();
+		db.resetDatabase();
 		
 		//WHEN
 		long list_id_1 = db.addList("list_1", "german", "description1", 1);
@@ -61,8 +59,7 @@ public class GTPDatabaseTest {
 	@Test
 	public void addWordWithUrlsToList() throws SQLException{
 		//GIVEN
-		db.dropAllTables();
-		db.createTablesIfNotExist();
+		db.resetDatabase();
 		
 		//WHEN
 		long list_id_1 = db.addList("list_1", "german", "description1", 1);
@@ -112,8 +109,7 @@ public class GTPDatabaseTest {
 	@Test
 	public void listNestingIntegrityCheck(){
 		//GIVEN
-		db.dropAllTables();
-		db.createTablesIfNotExist();
+		db.resetDatabase();
 		
 		//WHEN	
 		try {

@@ -14,7 +14,7 @@ import sx.blah.discord.handle.obj.IUser;
 public class InfoBot extends Bot {
 
 	public InfoBot(String token, Scanner scanner, UserInput userInput) {
-		super(token, new BotMenue(scanner, userInput));
+		super(token, new BotMenue(scanner, userInput), "infobot");
 
 	}
 	

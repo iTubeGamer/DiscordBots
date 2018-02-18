@@ -15,13 +15,13 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.pmw.tinylog.Logger;
 
-import de.maxkroner.database.Database;
+import de.maxkroner.database.BotDatabase;
 import de.maxkroner.gtp.reader.ImageUrlReader;
 import de.maxkroner.gtp.reader.WordListReader;
 import de.maxkroner.gtp.reader.WordListTO;
 import de.maxkroner.values.Values;
 
-public class GTPDatabase extends Database {
+public class GTPDatabase extends BotDatabase {
 	private static final String GTP_DATABASE_NAME = "gmgtp";
 
 	public GTPDatabase() {
@@ -33,7 +33,9 @@ public class GTPDatabase extends Database {
 		createTablesIfNotExist();
 	}
 
+	@Override
 	protected void createTablesIfNotExist() {
+		super.createTablesIfNotExist();
 		executeStatement(Values.GTP_SQL_CREATE_LISTS);
 		executeStatement(Values.GTP_SQL_CREATE_LIST_NESTING);
 		executeStatement(Values.GTP_SQL_CREATE_WORDS);

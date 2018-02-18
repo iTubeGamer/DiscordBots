@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -17,11 +18,11 @@ import java.util.stream.Collectors;
  */
 public class MessageParsing {
 	
-	public static Command parseMessageWithCommandSet(String message, CommandSet commandSet){
-		if(message.startsWith(commandSet.getCommandIdentifier())){
-			String commandString = message.substring(commandSet.getCommandIdentifier().length());
+	public static Command parseMessageWithCommandSet(String message, Set<String> commands, String commandPrefix, Character optionIdentifier){
+		if(message.startsWith(commandPrefix)){
+			String commandString = message.substring(commandPrefix.length());
 			boolean commandHasOptionsOrArguments = commandString.contains(" ");
-			boolean commandIsOptionStyle = commandString.charAt(commandString.indexOf(" ") + 1) == commandSet.getOptionIdentifier();
+			boolean commandIsOptionStyle = commandString.charAt(commandString.indexOf(" ") + 1) == optionIdentifier;
 			String commandName;
 			if(commandHasOptionsOrArguments){
 				commandName = commandString.substring(0, commandString.indexOf(" "));
@@ -30,14 +31,14 @@ public class MessageParsing {
 				return new Command(commandName, Optional.empty(), Optional.empty());
 			}		
 
-			if(commandSet.getCommands().contains(commandName)){
+			if(commands.contains(commandName)){
 				if(commandIsOptionStyle){
 					//parse options
 					String[] commandOptionStrings = new String[0];
 					List<CommandOption> commandOptions = new ArrayList<>();							
 					String optionsString = commandString.substring(commandString.indexOf(" ") + 1);
 					//split all options in own Strings
-					commandOptionStrings = optionsString.split(String.valueOf(commandSet.getOptionIdentifier()));
+					commandOptionStrings = optionsString.split(String.valueOf(optionIdentifier));
 					commandOptions = Arrays.stream(commandOptionStrings).map(String::trim).filter(s -> !s.isEmpty())
 							.map(s -> parseOptionFromString(s)).collect(Collectors.toList());
 					if (commandOptions.isEmpty()){

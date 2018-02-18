@@ -25,8 +25,8 @@ public class GameMasterBot extends Bot implements GameService {
 	private Map<IChannel, IGame> gameList = new HashMap<>();
 
 	public GameMasterBot(String token, Scanner scanner, UserInput userInput) {
-		super(token, new BotMenue(scanner, userInput));
-		addCommandParsing(this.getClass(), Values.PREFIX, Values.OPTION_PREFIX);
+		super(token, new BotMenue(scanner, userInput), "gamemaster");
+		addCommandParsing(this.getClass(), Values.PREFIX, Values.OPTION_PREFIX, true);
 	}
 
 	public void setGameProducer(GameProducer producer) {

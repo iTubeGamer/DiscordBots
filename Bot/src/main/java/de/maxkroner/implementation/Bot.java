@@ -2,14 +2,18 @@ package de.maxkroner.implementation;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 
 import org.pmw.tinylog.Logger;
 
-import de.maxkroner.parsing.CommandSet;
 import de.maxkroner.parsing.MessageParsing;
 import de.maxkroner.ui.BotMenue;
+import de.maxkroner.values.Values;
+import de.maxkroner.database.BotDatabase;
 import de.maxkroner.parsing.Command;
 import de.maxkroner.parsing.CommandHandler;
 import sx.blah.discord.api.ClientBuilder;
@@ -20,6 +24,7 @@ import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.impl.events.shard.DisconnectedEvent;
 import sx.blah.discord.handle.obj.IChannel;
+import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.util.DiscordException;
 import sx.blah.discord.util.Image;
@@ -27,29 +32,37 @@ import sx.blah.discord.util.MessageBuilder;
 import sx.blah.discord.util.RequestBuffer;
 
 public abstract class Bot {
-	private String bot_name = "";
 	protected BotMenue botMenue;
 	private IDiscordClient client;
-	private CommandSet commandSet = null;
+	protected BotDatabase db;
 	private HashMap<String, HashSet<Method>> commandMethodsMap;
+	private HashMap<String, String> aliasCommandMap;
+	private String commandPrefix;
+	private Character optionIdentifier;
+	private Instant startup;
 	
 	public IDiscordClient getClient() {
 		return this.client;
 	}
 
-	public Bot(String token, BotMenue botMenue) {
+	public Bot(String token, BotMenue botMenue, String dbIdentifier) {
+		 this(token, botMenue, new BotDatabase(dbIdentifier));
+	}
+	
+	public Bot(String token, BotMenue botMenue, BotDatabase botDatabase){
 		Logger.info("|||---STARTING UP ---|||");
+		startup = Instant.now();
 		this.client = createClient(token);
 		this.botMenue = botMenue;
+		this.db = botDatabase;
 		EventDispatcher dispatcher = client.getDispatcher();
-		dispatcher.registerListener(this); 
+		dispatcher.registerListener(this);
 	}
-
 	
 	@EventSubscriber
 	public void onReady(ReadyEvent event) {
 		Bot bot = this;
-		bot_name = client.getOurUser().getName();
+		String bot_name = client.getOurUser().getName();
 		
 		new Thread() {
 			@Override
@@ -69,10 +82,81 @@ public abstract class Bot {
 	
 	@EventSubscriber
 	public void onMessageReceivedEvent(MessageReceivedEvent event) {
-		if(commandSet != null){
-			Command command = MessageParsing.parseMessageWithCommandSet(event.getMessage().getContent(), commandSet);
-			if(command != null){
+		try{
+		if(commandMethodsMap != null && !commandMethodsMap.keySet().isEmpty()){
+			Command command = MessageParsing.parseMessageWithCommandSet(event.getMessage().getContent(), commandMethodsMap.keySet(), getCommandPrefixForGuild(event.getGuild()), optionIdentifier);
+			if(command != null && commandIsEnabledOnGuild(aliasCommandMap.get(command.getName()), event.getGuild())){
 				notifyReceivers(event, command);
+			}
+		}
+		} catch(Exception e){
+			Logger.error(e);
+		}
+	}
+
+	@CommandHandler("uptime")
+	protected void uptime(MessageReceivedEvent event, Command command){
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
+		if(!command.hasOptionsOrArguments()){
+			Duration uptime = Duration.between(startup, Instant.now());
+			long hours = uptime.toHours();
+			long minutes = uptime.toMinutes() - (hours * 60);
+			sendMessage(String.format("Bot uptime: %d hours and %d minutes", hours, minutes), event.getChannel(), false);
+		}
+	}
+	
+	@CommandHandler({"prefix", "p"})
+	protected void prefix(MessageReceivedEvent event, Command command){
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
+		if(command.hasArguments() && !command.hasOptions() && command.getArguments().get().size() == 1){
+			if(!event.getGuild().getOwner().equals(event.getAuthor())){
+				sendMessage("This command may only be used by the server owner.", event.getChannel(), false);
+				return;
+			}
+			String prefix = command.getArguments().get().get(0).trim();
+			if(prefix.length() >= 1 && prefix.length() <= 10){
+				try {
+					db.addGuildProperty(event.getGuild().getLongID(), "prefix", prefix);
+				} catch (SQLException e) {
+					Logger.error(e);
+				}
+				sendMessage("Command prefix has been changed to \"" + prefix + "\"", event.getChannel(), false);
+			} else {
+				sendMessage("Please choose a prefix with 1 to 10 characters.", event.getChannel(), false);
+			}
+		}
+	}
+	
+	@CommandHandler({"enable", "e", "activate"})
+	protected void enable(MessageReceivedEvent event, Command command){
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
+		if(command.hasArguments() && !command.hasOptions() && command.getArguments().get().size() == 1){
+			String commandName = command.getArguments().get().get(0).trim();
+			
+			if(commandEnOrDisablingIsOk(event, commandName)){
+				try {
+					db.addGuildProperty(event.getGuild().getLongID(), aliasCommandMap.get(commandName) + "Enabled", true);
+					sendMessage("The command \"" + aliasCommandMap.get(commandName) + "\" has been enabled", event.getChannel(), false);
+				} catch (SQLException e) {
+					Logger.error(e);
+				}
+			}
+		}
+	}
+	
+	@CommandHandler({"disable", "d", "deactivate"})
+	protected void disable(MessageReceivedEvent event, Command command){
+		Logger.info("Parsing message: {}", event.getMessage().getContent());
+		if(command.hasArguments() && !command.hasOptions() && command.getArguments().get().size() == 1){
+			String commandName = command.getArguments().get().get(0).trim();
+			
+			if(commandEnOrDisablingIsOk(event, commandName)){
+				try {
+					db.addGuildProperty(event.getGuild().getLongID(), aliasCommandMap.get(commandName) + "Enabled", false);
+					sendMessage("The command \"" + aliasCommandMap.get(commandName) + "\" has been disabled", event.getChannel(), false);
+				} catch (SQLException e) {
+					Logger.error(e);
+				}
 			}
 		}
 	}
@@ -147,17 +231,26 @@ public abstract class Bot {
 	}
 	
 	//---Message Parsing Event System---//
-	protected void addCommandParsing(Class<? extends Bot> botClass, String commandIdentifier, char optionIdentifier){
-		createCommandMethodsMap(botClass);
-		this.commandSet = new CommandSet(commandIdentifier, commandMethodsMap.keySet(), optionIdentifier);
+	protected void addCommandParsing(Class<? extends Bot> botClass, String commandIdentifier, char optionIdentifier, boolean enableStandardCommands){
+		if (commandMethodsMap == null){
+			commandMethodsMap = new HashMap<>();
+		}
+		if(aliasCommandMap == null){
+			aliasCommandMap = new HashMap<>();
+		}
+		addCommandsToMethodsMapForClass(botClass);
+		if(enableStandardCommands){
+			addCommandsToMethodsMapForClass(Bot.class);
+		}
+		this.commandPrefix = commandIdentifier;
+		this.optionIdentifier = optionIdentifier;
 	}
 	
 	protected void addCommandParsing(Class<? extends Bot> botClass){
-		addCommandParsing(botClass, "!", '-');
+		addCommandParsing(botClass, "!", '-', true);
 	}
 
-	private void createCommandMethodsMap(Class<? extends Bot> botClass) {
-		commandMethodsMap = new HashMap<>();
+	private void addCommandsToMethodsMapForClass(Class<? extends Bot> botClass) {
 		Method[] methods = botClass.getDeclaredMethods();
 		for(final Method method: methods){
 			if(method.isAnnotationPresent(CommandHandler.class)){
@@ -166,6 +259,8 @@ public abstract class Bot {
 				if(commands.length >= 1){
 					for(String command : commands){
 						addMethodForCommandToMap(command, method);
+						//the first command is the command name, the others are aliases
+						aliasCommandMap.put(command, commands[0]);
 					}
 				}
 			}
@@ -188,9 +283,44 @@ public abstract class Bot {
 					e.printStackTrace();
 				}
 			}
+		}	
+	}
+	
+	private String getCommandPrefixForGuild(IGuild guild) {
+		long guild_id = guild.getLongID();
+		try {
+			return db.getStringGuildProperty(guild_id, "prefix").orElse(this.commandPrefix);	
+		} catch (SQLException e) {
+			Logger.error(e);
+			return commandPrefix;
+		}
+	}
+	
+	private boolean commandIsEnabledOnGuild(String command, IGuild guild) {	
+		try {
+			return db.getBooleanGuildProperty(guild.getLongID(), command + "Enabled").orElse(true);
+		} catch (SQLException e) {
+			Logger.error(e);
+			return false;
+		}
+	}
+	
+	private boolean commandEnOrDisablingIsOk(MessageReceivedEvent event, String commandName) {
+		if(!event.getGuild().getOwner().equals(event.getAuthor())){
+			sendMessage("This command may only be used by the server owner.", event.getChannel(), false);
+			return false;
 		}
 		
+		if(Values.commandsThatCantBeDisabled.contains(commandName)){
+			sendMessage("This command cannot be activated or deactivated.", event.getChannel(), false);
+			return false;
+		}
 		
+		if(!commandMethodsMap.keySet().contains(commandName)){
+			sendMessage("The command \"" + commandName + "\" does not exist.", event.getChannel(), false);
+			return false;
+		}
+		return true;
 	}
 
 }

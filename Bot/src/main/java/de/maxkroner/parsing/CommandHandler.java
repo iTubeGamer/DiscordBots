@@ -8,5 +8,5 @@ import java.lang.annotation.Target;
 @Retention(value = RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface CommandHandler {
-	String[] value(); //the commands to handle
+	String[] value(); //the commands/aliases the method should handle
 }

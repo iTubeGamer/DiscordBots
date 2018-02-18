@@ -78,7 +78,7 @@ public class TempChannelBot extends Bot {
 	}
 
 	public TempChannelBot(String token, Scanner scanner, UserInput userInput) {
-		super(token, new TempChannelMenue(scanner, userInput, tempChannelsByGuild));
+		super(token, new TempChannelMenue(scanner, userInput, tempChannelsByGuild), "tempchannels");
 		home = System.getProperty("user.home");
 		path_serialized_tempChannels = Paths.get(home, "discordBots", "TempChannels", "tmp").toString();
 		addCommandParsing(this.getClass());
@@ -198,7 +198,7 @@ public class TempChannelBot extends Bot {
 
 	// ----- COMMAND HANDLING ----- //
 
-	@CommandHandler("c")
+	@CommandHandler({"create", "c", "new"})
 	protected void executeChannelCommand(MessageReceivedEvent event, Command command) {
 		String name = getRandomName();
 		List<IUser> allowedUsers = null; // null = everyone allowed in the new channel
@@ -251,7 +251,7 @@ public class TempChannelBot extends Bot {
 		}
 	}
 
-	@CommandHandler("cc")
+	@CommandHandler({"clear", "cc"})
 	protected void executeChannelClearCommand(MessageReceivedEvent event, Command command) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		IGuild guild = event.getGuild();
@@ -297,12 +297,12 @@ public class TempChannelBot extends Bot {
 		}
 
 		if (sendMessage) {
-			sendMessage("Some of your channels arent empty. Use \"!cc -f\" to force the deletion anyway.", channel, false);
+			sendMessage("Some of your channels arent empty. Use `!cc -f` to force the deletion anyway.", channel, false);
 		}
 
 	}
 
-	@CommandHandler("kick")
+	@CommandHandler({"kick", "k"})
 	protected void executeKickCommand(MessageReceivedEvent event, Command command) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());	
 		IVoiceChannel channelToKickFrom = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel();
@@ -312,6 +312,10 @@ public class TempChannelBot extends Bot {
 			if(usersToKick.remove(event.getAuthor())){
 				sendMessage("You tried to kick yourself from your own TempChannel :scream:", event.getAuthor().getOrCreatePMChannel(), false);
 			}
+			//filter users who arent in the channel
+			usersToKick = usersToKick.stream()
+					.filter(T -> T.getVoiceStateForGuild(event.getGuild()).getChannel() != null)
+					.filter(T -> T.getVoiceStateForGuild(event.getGuild()).getChannel().equals(channelToKickFrom)).collect(Collectors.toList());
 			if(!usersToKick.isEmpty()){
 				TempChannel tempChannel = createTempChannel(event.getGuild(), getClient().getOurUser(), "you got kicked", null, Collections.emptyList(), 0, 0, true);
 				movePlayersToChannel(usersToKick, tempChannel.getChannel(), event.getAuthor());
@@ -321,7 +325,7 @@ public class TempChannelBot extends Bot {
 		}
 	}
 
-	@CommandHandler("ban")
+	@CommandHandler({"ban", "b", "deny", "remove"})
 	protected void executeBanCommand(MessageReceivedEvent event, Command command) {
 		Logger.info("Parsing message: {}", event.getMessage().getContent());	
 		IVoiceChannel channelToBanFrom = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel();
@@ -331,10 +335,33 @@ public class TempChannelBot extends Bot {
 			if(usersToBan.remove(event.getAuthor())){
 				sendMessage("You tried to ban yourself from your own TempChannel :scream:", event.getAuthor().getOrCreatePMChannel(), false);
 			}
+			//filter users who arent in the channel
+			usersToBan = usersToBan.stream()
+					.filter(T -> T.getVoiceStateForGuild(event.getGuild()).getChannel() != null)
+					.filter(T -> T.getVoiceStateForGuild(event.getGuild()).getChannel().equals(channelToBanFrom)).collect(Collectors.toList());
 			if(!usersToBan.isEmpty()){
 				denyUsersToJoinChannel(usersToBan, event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel());	
 				TempChannel tempChannel = createTempChannel(event.getGuild(), getClient().getOurUser(), "you got banned", null, Collections.emptyList(), 0, 0, true);
 				movePlayersToChannel(usersToBan, tempChannel.getChannel(), event.getAuthor());
+				sendMessage("The mentioned user(s) got banned form your TempChannel `" + tempChannelToBanFrom.getChannel().getName() + "`!", event.getChannel(), false);
+			}	
+		} else {
+			sendMessage("You can only use this command if you are in a TempChannel that you own", event.getAuthor().getOrCreatePMChannel(), false);
+		}		
+	}
+	
+	@CommandHandler({"unban", "ub", "allow", "add"})
+	protected void executeUnBanCommand(MessageReceivedEvent event, Command command) {
+		Logger.info("Parsing message: {}", event.getMessage().getContent());	
+		IVoiceChannel channelToUnBanFrom = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel();
+		TempChannel tempChannelToUnBanFrom = tempChannelsByGuild.get(event.getGuild()).getTempChannelForChannel(channelToUnBanFrom);
+		if(tempChannelToUnBanFrom != null && event.getAuthor().equals(tempChannelToUnBanFrom.getOwner())){
+			List<IUser> usersToUnBan = OptionParsing.parseUserList(command.getArguments().orElse(Collections.emptyList()), getClient());
+			usersToUnBan.remove(event.getAuthor());
+
+			if(!usersToUnBan.isEmpty()){
+				allowUsersToJoinChannel(usersToUnBan, event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel());
+				sendMessage("The mentioned user(s) may now join your TempChannel `" + tempChannelToUnBanFrom.getChannel().getName() + "`!", event.getChannel(), false);
 			}	
 		} else {
 			sendMessage("You can only use this command if you are in a TempChannel that you own", event.getAuthor().getOrCreatePMChannel(), false);
@@ -363,6 +390,11 @@ public class TempChannelBot extends Bot {
 				.appendField("Ban User from TempChannel", "`!ban @User1 @User2 ...`", false);
 
 		RequestBuffer.request(() -> event.getAuthor().getOrCreatePMChannel().sendMessage(builder.build()));
+	}
+	
+	@CommandHandler("tempChannelsPrefix")
+	protected void prefix(MessageReceivedEvent event, Command command) {
+		super.prefix(event, command);
 	}
 
 	// ----- EXCECUTING METHODS ----- //
@@ -432,6 +464,12 @@ public class TempChannelBot extends Bot {
 		}
 
 		return targetCategory;
+	}
+	
+	private void allowUsersToJoinChannel(List<IUser> usersToUnBan, IVoiceChannel channel) {
+		for (IUser user : usersToUnBan) {
+			channel.overrideUserPermissions(user, voice_connect, empty);
+		}	
 	}
 	
 	private void denyUsersToJoinChannel(List<IUser> usersToBan, IVoiceChannel channel) {

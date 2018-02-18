@@ -50,9 +50,6 @@ public class Values {
 	
 	public static final String MESSAGE_GAME_OVER = "The game \"{}\" is over.";
 	
-	///---SQL---///
-	public static final String SQL_DROP_ALL_TABLES = "DROP ALL OBJECTS DELETE FILES";
-	
 	//---GuessThePic---//
 	
 	public static final String MESSAGE_GTP_NEW_ROUND = "Starting Round {}";

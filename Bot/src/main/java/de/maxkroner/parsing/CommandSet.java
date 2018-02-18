@@ -3,18 +3,18 @@ package de.maxkroner.parsing;
 import java.util.Set;
 
 public class CommandSet {
-	private String commandIdentifier;
+	private String commandPrefix;
 	private char optionIdentifier;
 	private final Set<String> commands;
 	
-	public CommandSet(String commandIdentifier, Set<String> set, char optionIdentifier) {
-		this.commandIdentifier = commandIdentifier;
+	public CommandSet(String commandPrefix, Set<String> set, char optionIdentifier) {
+		this.commandPrefix = commandPrefix;
 		this.optionIdentifier = optionIdentifier;
 		this.commands = set;
 	}
 
-	public String getCommandIdentifier() {
-		return commandIdentifier;
+	public String getCommandPrefix() {
+		return commandPrefix;
 	}
 	public char getOptionIdentifier() {
 		return optionIdentifier;
@@ -22,6 +22,11 @@ public class CommandSet {
 	public Set<String> getCommands() {
 		return commands;
 	}
+
+	public void setCommandPrefix(String commandPrefix) {
+		this.commandPrefix = commandPrefix;
+	}
+	
 	
 	
 }

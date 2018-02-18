@@ -68,8 +68,9 @@ public class OptionParsing {
 				movePlayers = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel().getConnectedUsers();
 			}
 		} else {
-			// users mentioned by name
+			// users mentioned by name + author
 			movePlayers = parseUserList(option.getParameterList(), client);
+			movePlayers.add(event.getAuthor());
 		}
 
 		return movePlayers;
