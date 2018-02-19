@@ -127,7 +127,7 @@ public abstract class Bot {
 				} catch (SQLException e) {
 					Logger.error(e);
 				}
-				sendMessage("Command prefix has been changed to \"" + prefix + "\"", event.getChannel(), false);
+				sendMessage("Command prefix has been changed to `" + prefix + "`", event.getChannel(), false);
 			} else {
 				sendMessage("Please choose a prefix with 1 to 10 characters.", event.getChannel(), false);
 			}
@@ -143,7 +143,7 @@ public abstract class Bot {
 			if(commandEnOrDisablingIsOk(event, commandName)){
 				try {
 					db.addGuildProperty(event.getGuild().getLongID(), aliasCommandMap.get(commandName) + "Enabled", true);
-					sendMessage("The command \"" + aliasCommandMap.get(commandName) + "\" has been enabled", event.getChannel(), false);
+					sendMessage("The command `" + aliasCommandMap.get(commandName) + "` has been enabled", event.getChannel(), false);
 				} catch (SQLException e) {
 					Logger.error(e);
 				}
@@ -160,7 +160,7 @@ public abstract class Bot {
 			if(commandEnOrDisablingIsOk(event, commandName)){
 				try {
 					db.addGuildProperty(event.getGuild().getLongID(), aliasCommandMap.get(commandName) + "Enabled", false);
-					sendMessage("The command \"" + aliasCommandMap.get(commandName) + "\" has been disabled", event.getChannel(), false);
+					sendMessage("The command `" + aliasCommandMap.get(commandName) + "` has been disabled", event.getChannel(), false);
 				} catch (SQLException e) {
 					Logger.error(e);
 				}
@@ -324,7 +324,7 @@ public abstract class Bot {
 		}
 		
 		if(!commandMethodsMap.keySet().contains(commandName)){
-			sendMessage("The command \"" + commandName + "\" does not exist.", event.getChannel(), false);
+			sendMessage("The command `" + commandName + "` does not exist.", event.getChannel(), false);
 			return false;
 		}
 		return true;
