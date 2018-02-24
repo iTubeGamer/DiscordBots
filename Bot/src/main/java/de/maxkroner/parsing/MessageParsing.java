@@ -7,6 +7,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.pmw.tinylog.Logger;
+
 /**
  * Parses Command-objects from messages.
  * There are 2 types of command-styles: argument-style and option-style
@@ -19,7 +21,7 @@ import java.util.stream.Collectors;
 public class MessageParsing {
 	
 	public static Command parseMessageWithCommandSet(String message, Set<String> commands, String commandPrefix, Character optionIdentifier){
-		if(message.startsWith(commandPrefix)){
+		if(message.startsWith(commandPrefix) && message.length() > commandPrefix.length()){
 			String commandString = message.substring(commandPrefix.length());
 			boolean commandHasOptionsOrArguments = commandString.contains(" ");
 			boolean commandIsOptionStyle = commandString.charAt(commandString.indexOf(" ") + 1) == optionIdentifier;
@@ -32,6 +34,7 @@ public class MessageParsing {
 			}		
 
 			if(commands.contains(commandName)){
+				Logger.info("Parsing message: {}", message);
 				if(commandIsOptionStyle){
 					//parse options
 					String[] commandOptionStrings = new String[0];

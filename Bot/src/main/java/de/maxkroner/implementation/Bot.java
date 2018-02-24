@@ -103,7 +103,6 @@ public abstract class Bot {
 
 	@CommandHandler("uptime")
 	protected void uptime(MessageReceivedEvent event, Command command){
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		if(!command.hasOptionsOrArguments()){
 			Duration uptime = Duration.between(startup, Instant.now());
 			long hours = uptime.toHours();
@@ -114,7 +113,6 @@ public abstract class Bot {
 	
 	@CommandHandler({"prefix", "p"})
 	protected void prefix(MessageReceivedEvent event, Command command){
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		if(command.hasArguments() && !command.hasOptions() && command.getArguments().get().size() == 1){
 			if(!event.getGuild().getOwner().equals(event.getAuthor())){
 				sendMessage("This command can only be used by the server owner.", event.getChannel(), false);
@@ -136,7 +134,6 @@ public abstract class Bot {
 	
 	@CommandHandler({"enable", "e", "activate"})
 	protected void enable(MessageReceivedEvent event, Command command){
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		if(command.hasArguments() && !command.hasOptions() && command.getArguments().get().size() == 1){
 			String commandName = command.getArguments().get().get(0).trim();
 			
@@ -153,7 +150,6 @@ public abstract class Bot {
 	
 	@CommandHandler({"disable", "d", "deactivate"})
 	protected void disable(MessageReceivedEvent event, Command command){
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		if(command.hasArguments() && !command.hasOptions() && command.getArguments().get().size() == 1){
 			String commandName = command.getArguments().get().get(0).trim();
 			

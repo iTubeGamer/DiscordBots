@@ -207,8 +207,6 @@ public class TempChannelBot extends Bot {
 		List<String> errorMessages = new ArrayList<>();
 
 		if (checkIfPrequisitesAreMet(event.getChannel(), event.getAuthor(), event.getGuild(), errorMessages)) {
-			Logger.info("Parsing message: {}", event.getMessage().getContent());
-
 			for (CommandOption option : command.getCommandOptions().orElse(Collections.emptyList())) {
 
 				switch (option.getCommandOptionName()) {
@@ -255,7 +253,6 @@ public class TempChannelBot extends Bot {
 
 	@CommandHandler({"clear", "cc"})
 	protected void executeChannelClearCommand(MessageReceivedEvent event, Command command) {
-		Logger.info("Parsing message: {}", event.getMessage().getContent());
 		IGuild guild = event.getGuild();
 		IUser author = event.getAuthor();
 		IChannel channel = event.getChannel();
@@ -306,7 +303,6 @@ public class TempChannelBot extends Bot {
 
 	@CommandHandler({"kick", "k"})
 	protected void executeKickCommand(MessageReceivedEvent event, Command command) {
-		Logger.info("Parsing message: {}", event.getMessage().getContent());	
 		IVoiceChannel channelToKickFrom = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel();
 		TempChannel tempChannelToKickFrom = tempChannelsByGuild.get(event.getGuild()).getTempChannelForChannel(channelToKickFrom);
 		if(tempChannelToKickFrom != null && event.getAuthor().equals(tempChannelToKickFrom.getOwner())){
@@ -329,7 +325,6 @@ public class TempChannelBot extends Bot {
 
 	@CommandHandler({"ban", "b", "deny", "remove"})
 	protected void executeBanCommand(MessageReceivedEvent event, Command command) {
-		Logger.info("Parsing message: {}", event.getMessage().getContent());	
 		IVoiceChannel channelToBanFrom = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel();
 		TempChannel tempChannelToBanFrom = tempChannelsByGuild.get(event.getGuild()).getTempChannelForChannel(channelToBanFrom);
 		if(tempChannelToBanFrom != null && event.getAuthor().equals(tempChannelToBanFrom.getOwner())){
@@ -354,7 +349,6 @@ public class TempChannelBot extends Bot {
 	
 	@CommandHandler({"unban", "ub", "allow", "add"})
 	protected void executeUnBanCommand(MessageReceivedEvent event, Command command) {
-		Logger.info("Parsing message: {}", event.getMessage().getContent());	
 		IVoiceChannel channelToUnBanFrom = event.getAuthor().getVoiceStateForGuild(event.getGuild()).getChannel();
 		TempChannel tempChannelToUnBanFrom = tempChannelsByGuild.get(event.getGuild()).getTempChannelForChannel(channelToUnBanFrom);
 		if(tempChannelToUnBanFrom != null && event.getAuthor().equals(tempChannelToUnBanFrom.getOwner())){
