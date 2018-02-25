@@ -151,7 +151,7 @@ public abstract class Bot {
 		}
 	}
 	
-	@CommandHandler({"prefix", "p"})
+	@CommandHandler({"prefix"})
 	protected void prefix(MessageReceivedEvent event, Command command){
 		if(command.hasArguments() && !command.hasOptions() && command.getArguments().get().size() == 1){
 			if(!event.getGuild().getOwner().equals(event.getAuthor())){
