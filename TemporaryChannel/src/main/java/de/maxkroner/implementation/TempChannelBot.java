@@ -106,7 +106,7 @@ public class TempChannelBot extends Bot {
 		executor.scheduleAtFixedRate(checkEvent, 1, 1, TimeUnit.MINUTES);
 		Logger.info("TempChannels startet up and ready 2 go!");
 		still_in_startup_mode = false;
-		//TODO updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
+		updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
 	}
 
 	@EventSubscriber
