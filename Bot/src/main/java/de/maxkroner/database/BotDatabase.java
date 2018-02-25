@@ -20,9 +20,9 @@ public class BotDatabase {
 
 	protected Connection conn;
 	
-	public BotDatabase(String name){
+	public BotDatabase(String pathName){
 		try {
-			DB_CONNECTION = "jdbc:h2:~/" + name + ";MV_STORE=FALSE;MVCC=FALSE";
+			DB_CONNECTION = "jdbc:h2:" + pathName + ";MV_STORE=FALSE;MVCC=FALSE";
 			Class.forName(DB_DRIVER);
 			conn = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
 			createTablesIfNotExist();

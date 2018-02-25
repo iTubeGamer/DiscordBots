@@ -1,10 +1,7 @@
 package de.maxkroner.implementation;
 
 import java.util.List;
-import java.util.Scanner;
 
-import de.maxkroner.ui.BotMenue;
-import de.maxkroner.ui.UserInput;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.obj.IExtendedInvite;
@@ -13,8 +10,8 @@ import sx.blah.discord.handle.obj.IUser;
 
 public class InfoBot extends Bot {
 
-	public InfoBot(String token, Scanner scanner, UserInput userInput) {
-		super(token, new BotMenue(scanner, userInput), "infobot");
+	public InfoBot() {
+		super("InfoBot");
 
 	}
 	

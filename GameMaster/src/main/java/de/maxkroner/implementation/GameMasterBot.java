@@ -4,17 +4,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 import de.maxkroner.factory.GameProducer;
-import de.maxkroner.gtp.values.Keys;
 import de.maxkroner.model.GameService;
 import de.maxkroner.model.GameState;
 import de.maxkroner.model.IGame;
 import de.maxkroner.parsing.Command;
 import de.maxkroner.parsing.CommandHandler;
-import de.maxkroner.ui.BotMenue;
-import de.maxkroner.ui.UserInput;
 import de.maxkroner.values.Values;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
@@ -24,8 +20,8 @@ public class GameMasterBot extends Bot implements GameService {
 	private GameProducer producer;
 	private Map<IChannel, IGame> gameList = new HashMap<>();
 
-	public GameMasterBot(String token, Scanner scanner, UserInput userInput) {
-		super(token, new BotMenue(scanner, userInput), "gamemaster");
+	public GameMasterBot() {
+		super("GameMaster");
 		addCommandParsing(this.getClass(), Values.PREFIX, Values.OPTION_PREFIX, true);
 	}
 

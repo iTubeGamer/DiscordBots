@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Scanner;
 
 import org.pmw.tinylog.Logger;
 
@@ -19,12 +18,11 @@ import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
 
-public class TempChannelMenue extends BotMenue {
+public class TempChannelMenue extends ConsoleMenue {
 	private HashMap<IGuild, TempChannelMap> tempChannelsByGuild;
 
-	public TempChannelMenue(Scanner scanner, UserInput userInput,
-			HashMap<IGuild, TempChannelMap> tempChannelsByGuild) {
-		super(scanner, userInput);
+	public TempChannelMenue(HashMap<IGuild, TempChannelMap> tempChannelsByGuild) {
+		super();
 		this.tempChannelsByGuild = tempChannelsByGuild;
 	}
 
@@ -35,7 +33,7 @@ public class TempChannelMenue extends BotMenue {
 		int auswahl = 0;
 		while (!(auswahl == 4 | auswahl == 3)) {
 
-			auswahl = userInput.getMultipleChoiceResult("What to do?", "print current state",
+			auswahl = UserInput.getMultipleChoiceResult("What to do?", "print current state",
 					"configure bot", "leave menue, but keep bot running", "shut down bot");
 
 			switch (auswahl) {
@@ -46,12 +44,12 @@ public class TempChannelMenue extends BotMenue {
 				customizeBot();
 				break;
 			case 3:
-				if (!userInput.getYesNoResult("Are you sure?")) {
+				if (!UserInput.getYesNoResult("Are you sure?")) {
 					auswahl = 1;
 				}
 				break;
 			case 4:
-				if (userInput.getYesNoResult("Are you sure?")) {
+				if (UserInput.getYesNoResult("Are you sure?")) {
 					Logger.info("|||---SHUTTING DOWN---|||");
 					System.exit(0);
 				} else {
@@ -74,7 +72,7 @@ public class TempChannelMenue extends BotMenue {
 			break;
 		default:
 			List<IGuild> guilds = new ArrayList<>(tempChannelsByGuild.keySet());
-			chosenGuild = userInput.getMultipleChoiceResult("For which guild?", guilds, IGuild::getName);
+			chosenGuild = UserInput.getMultipleChoiceResult("For which guild?", guilds, IGuild::getName);
 		}
 
 		if (chosenGuild != null) {

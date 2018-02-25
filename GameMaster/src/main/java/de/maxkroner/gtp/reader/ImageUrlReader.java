@@ -1,8 +1,6 @@
 package de.maxkroner.gtp.reader;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,13 +10,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.pmw.tinylog.Logger;
 
 import de.maxkroner.gtp.values.Keys;
 import de.maxkroner.values.Values;
-import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;

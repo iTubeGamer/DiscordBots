@@ -1,16 +1,12 @@
 package de.maxkroner.implementation;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,11 +15,9 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -38,7 +32,6 @@ import de.maxkroner.parsing.CommandOption;
 import de.maxkroner.parsing.OptionParsing;
 import de.maxkroner.to.TempChannelTO;
 import de.maxkroner.ui.TempChannelMenue;
-import de.maxkroner.ui.UserInput;
 import de.maxkroner.values.Keys;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
@@ -52,7 +45,6 @@ import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelLeave
 import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelMoveEvent;
 import sx.blah.discord.handle.obj.ICategory;
 import sx.blah.discord.handle.obj.IChannel;
-import sx.blah.discord.handle.obj.IEmoji;
 import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
@@ -63,7 +55,6 @@ import sx.blah.discord.util.RequestBuffer;
 
 public class TempChannelBot extends Bot {
 	private static final int timeout_for_unknown_channels = 5;
-	private static ArrayList<String> channelNames = new ArrayList<>();
 	private static HashMap<IGuild, TempChannelMap> tempChannelsByGuild = new HashMap<>();
 	private static ArrayList<TempChannel> stashedChannels = new ArrayList<>(); // if bot leaves Guild tempChannels get stashed
 	private static final EnumSet<Permissions> voice_connect = EnumSet.of(Permissions.VOICE_CONNECT);
@@ -74,8 +65,11 @@ public class TempChannelBot extends Bot {
 	private static String home = "";
 	private static boolean still_in_startup_mode = true;
 
-	public TempChannelBot(String token, Scanner scanner, UserInput userInput) {
-		super(token, new TempChannelMenue(scanner, userInput, tempChannelsByGuild), "tempchannels");
+	public TempChannelBot(String token) {
+		super("TempChannels");
+		super.addConsoleMenue(new TempChannelMenue(tempChannelsByGuild));
+		super.addLogging("tc");
+		super.addDatabase("TempChannels");
 		home = System.getProperty("user.home");
 		path_serialized_tempChannels = Paths.get(home, "discordBots", "TempChannels", "tmp").toString();
 		addCommandParsing(this.getClass());
@@ -474,16 +468,6 @@ public class TempChannelBot extends Bot {
 	}
 
 	// ----- HELPER METHODS ----- //
-
-	private static void fileToArray(String fileName, List<String> list, int maxLength) {
-		try (InputStream is = TempChannelBot.class.getClassLoader().getResourceAsStream(fileName)) {
-			list.addAll(new BufferedReader(new InputStreamReader(is, StandardCharsets.ISO_8859_1)).lines()
-					.filter(s -> s != null && s.length() > 0 && (maxLength == 0 || s.length() <= maxLength)).collect(Collectors.toList()));
-		} catch (IOException e) {
-			System.err.println(e.getMessage());
-		}
-	}
-
 	private Collection<TempChannel> getUserChannelsOnGuild(IUser user, IGuild guild) {
 		return tempChannelsByGuild.get(guild).getTempChannelListForUser(user);
 	}

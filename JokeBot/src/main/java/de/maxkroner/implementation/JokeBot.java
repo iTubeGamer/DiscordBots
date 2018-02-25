@@ -2,11 +2,9 @@ package de.maxkroner.implementation;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Scanner;
 
 import de.maxkroner.database.JokeDatabase;
 import de.maxkroner.ui.JokeBotMenue;
-import de.maxkroner.ui.UserInput;
 import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.ReadyEvent;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
@@ -18,10 +16,13 @@ public class JokeBot extends Bot {
 	private List<String> jokeCategories;
 	private JokeDatabase jokeDatabase;
 
-	public JokeBot(String token, Scanner scanner, UserInput userInput) {
-		super(token, new JokeBotMenue(scanner, userInput, new JokeDatabase()), "jokes");
-		JokeBotMenue jokeBotMenue= (JokeBotMenue) botMenue;
-		this.jokeDatabase = jokeBotMenue.getJokeDatabase();
+	public JokeBot(String token) {
+		super("JokeBot");
+		JokeBotMenue jbMenue = new JokeBotMenue(new JokeDatabase());
+		super.addConsoleMenue();
+		super.addLogging("jb");
+		super.run(token);
+		this.jokeDatabase = jbMenue.getJokeDatabase();
 	}
 
 	private void tellJoke(String category, IChannel channel) {

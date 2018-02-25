@@ -2,6 +2,7 @@ package de.maxkroner.implementation;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
@@ -9,14 +10,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import org.discordbots.api.client.DiscordBotListAPI;
-import org.pmw.tinylog.Logger;
 
-import de.maxkroner.parsing.MessageParsing;
-import de.maxkroner.ui.BotMenue;
-import de.maxkroner.values.Values;
 import de.maxkroner.database.BotDatabase;
+import de.maxkroner.logging.DiscordLogger;
+import de.maxkroner.logging.EmptyDiscordLogger;
 import de.maxkroner.parsing.Command;
 import de.maxkroner.parsing.CommandHandler;
+import de.maxkroner.parsing.MessageParsing;
+import de.maxkroner.ui.ConsoleMenue;
+import de.maxkroner.ui.IConsoleMenue;
+import de.maxkroner.values.Values;
 import sx.blah.discord.api.ClientBuilder;
 import sx.blah.discord.api.IDiscordClient;
 import sx.blah.discord.api.events.EventDispatcher;
@@ -33,9 +36,12 @@ import sx.blah.discord.util.MessageBuilder;
 import sx.blah.discord.util.RequestBuffer;
 
 public abstract class Bot {
-	protected BotMenue botMenue;
+	protected String botName;
+	protected String homePath;
+	protected IConsoleMenue consoleMenue;
 	private IDiscordClient client;
 	protected BotDatabase db;
+	protected static DiscordLogger logger;
 	private HashMap<String, HashSet<Method>> commandMethodsMap;
 	private HashMap<String, String> aliasCommandMap;
 	private String commandPrefix;
@@ -43,43 +49,77 @@ public abstract class Bot {
 	private Instant startup;
 	protected DiscordBotListAPI api;
 	
-	public IDiscordClient getClient() {
-		return this.client;
-	}
-
-	public Bot(String token, BotMenue botMenue, String dbIdentifier) {
-		 this(token, botMenue, new BotDatabase(dbIdentifier));
+	/**
+	 * 
+	 * @param botName name used for home folder
+	 */
+	public Bot(String botName) {
+		 this.botName = botName;
+		 setHomePath();
+		 startup = Instant.now();
 	}
 	
-	public Bot(String token, BotMenue botMenue, BotDatabase botDatabase){
-		Logger.info("|||---STARTING UP ---|||");
-		startup = Instant.now();
+	public Bot addConsoleMenue(IConsoleMenue menue){
+		this.consoleMenue = menue;
+		return this;
+	}
+	
+	public Bot addConsoleMenue(){
+		this.consoleMenue = new ConsoleMenue(this);
+		return this;
+	}
+	
+	public Bot addLogging(String loggingPrefix){
+		logger = new DiscordLogger(Paths.get(homePath, "log" + loggingPrefix + ".log").toString());
+		return this;
+	}
+	
+	public Bot addDatabase(String databaseName){
+		this.db = new BotDatabase(Paths.get(homePath, "db" + "databaseName").toString());
+		return this;
+	}
+	
+	public Bot addDatabase(BotDatabase database){
+		this.db = database;
+		return this;
+	}
+	
+	public void run(String token){
+		if(logger == null){
+			logger = new EmptyDiscordLogger();
+		}
 		this.client = createClient(token);
-		this.botMenue = botMenue;
-		this.db = botDatabase;
 		EventDispatcher dispatcher = client.getDispatcher();
 		dispatcher.registerListener(this);
 	}
 	
+	protected IDiscordClient getClient() {
+		return this.client;
+	}
+
 	@EventSubscriber
 	public void onReady(ReadyEvent event) {
 		Bot bot = this;
 		String bot_name = client.getOurUser().getName();
 		
-		new Thread() {
-			@Override
-			public void run() {
-				botMenue.startMenue(bot);
-			}
-		}.start();
+		//start consoleMenue if enabled
+		if(consoleMenue != null){
+			new Thread() {
+				@Override
+				public void run() {
+					consoleMenue.startMenue(bot);
+				}
+			}.start();
+		}
+		
 		System.out.println("Logged in as " + bot_name);
-		Logger.info("Logged in as " + bot_name);
+		logger.info("Logged in as " + bot_name);
 	}
 	
 	@EventSubscriber
 	protected void logout(DisconnectedEvent event) {
 		System.out.println("Logged out for reason " + event.getReason() + "!");
-		Logger.info("Logged out for reason " + event.getReason() + "!");
+		logger.info("Logged out for reason " + event.getReason() + "!");
 	}
 	
 	@EventSubscriber
@@ -97,7 +137,7 @@ public abstract class Bot {
 			}
 		}
 		} catch(Exception e){
-			Logger.error(e);
+			logger.error(e);
 		}
 	}
 
@@ -123,7 +163,7 @@ public abstract class Bot {
 				try {
 					db.addGuildProperty(event.getGuild().getLongID(), "prefix", prefix);
 				} catch (SQLException e) {
-					Logger.error(e);
+					logger.error(e);
 				}
 				sendMessage("Command prefix has been changed to `" + prefix + "`", event.getChannel(), false);
 			} else {
@@ -142,7 +182,7 @@ public abstract class Bot {
 					db.addGuildProperty(event.getGuild().getLongID(), aliasCommandMap.get(commandName) + "Enabled", true);
 					sendMessage("The command `" + aliasCommandMap.get(commandName) + "` has been enabled", event.getChannel(), false);
 				} catch (SQLException e) {
-					Logger.error(e);
+					logger.error(e);
 				}
 			}
 		}
@@ -158,7 +198,7 @@ public abstract class Bot {
 					db.addGuildProperty(event.getGuild().getLongID(), aliasCommandMap.get(commandName) + "Enabled", false);
 					sendMessage("The command `" + aliasCommandMap.get(commandName) + "` has been disabled", event.getChannel(), false);
 				} catch (SQLException e) {
-					Logger.error(e);
+					logger.error(e);
 				}
 			}
 		}
@@ -168,10 +208,10 @@ public abstract class Bot {
 		try {
 			client.changeUsername(name);
 			System.out.println("The botname was changed to \"" + name + "\"");
-			Logger.info("The botname was changed to \"" + name + "\"");
+			logger.info("The botname was changed to \"" + name + "\"");
 		} catch (Exception e) {
 			System.out.println("Changing botname failed.");
-			Logger.error(e);
+			logger.error(e);
 		}
 	}
 	
@@ -179,10 +219,10 @@ public abstract class Bot {
 		try {
 			client.changePlayingText(playingText);
 			System.out.println("The playingText was changed to \"" + playingText + "\"");
-			Logger.info("The playingText was changed to \"" + playingText + "\"");
+			logger.info("The playingText was changed to \"" + playingText + "\"");
 		} catch (Exception e) {
 			System.out.println("Changing playingText failed.");
-			Logger.error(e);
+			logger.error(e);
 		}
 	}
 	
@@ -190,10 +230,10 @@ public abstract class Bot {
 		try {
 			client.changeAvatar(Image.forUrl(imageType, url));
 			System.out.println("The avatar has been successfully changed.");
-			Logger.info("The avatar has been successfully changed.");
+			logger.info("The avatar has been successfully changed.");
 		} catch (Exception e) {
 			System.out.println("Chaning avatar failed.");
-			Logger.error(e);
+			logger.error(e);
 		}
 	}
 	
@@ -208,7 +248,7 @@ public abstract class Bot {
 				mb.withContent(message);
 				mb.build();
 			} catch (DiscordException e){
-				Logger.warn(e);
+				logger.warn(e);
 				throw e;
 			}
 		});
@@ -228,7 +268,7 @@ public abstract class Bot {
 			return clientBuilder.login();
 											
 		} catch (DiscordException e) {
-			Logger.error(e);
+			logger.error(e);
 			return null;
 		}
 	}
@@ -242,7 +282,7 @@ public abstract class Bot {
 			aliasCommandMap = new HashMap<>();
 		}
 		addCommandsToMethodsMapForClass(botClass);
-		if(enableStandardCommands){
+		if(enableStandardCommands && db != null){
 			addCommandsToMethodsMapForClass(Bot.class);
 		}
 		this.commandPrefix = commandIdentifier;
@@ -290,20 +330,26 @@ public abstract class Bot {
 	}
 	
 	private String getCommandPrefixForGuild(IGuild guild) {
+		if(db == null){
+			return "!";
+		}
 		long guild_id = guild.getLongID();
 		try {
 			return db.getStringGuildProperty(guild_id, "prefix").orElse(this.commandPrefix);	
 		} catch (SQLException e) {
-			Logger.error(e);
+			logger.error(e);
 			return commandPrefix;
 		}
 	}
 	
-	private boolean commandIsEnabledOnGuild(String command, IGuild guild) {	
+	private boolean commandIsEnabledOnGuild(String command, IGuild guild) {
+		if(db == null){
+			return true;
+		}
 		try {
 			return db.getBooleanGuildProperty(guild.getLongID(), command + "Enabled").orElse(true);
 		} catch (SQLException e) {
-			Logger.error(e);
+			logger.error(e);
 			return false;
 		}
 	}
@@ -334,7 +380,13 @@ public abstract class Bot {
 		}
 		
 		api.setStats(botId, count);
-		Logger.info("Updated guild count for bot " + botId);
+		logger.info("Updated guild count for bot " + botId);
 	}
+	
+	private void setHomePath() {
+		String home = System.getProperty("user.home");
+		homePath = Paths.get(home, "discordBots", botName).toString() ;	
+	}
+	
 
 }
