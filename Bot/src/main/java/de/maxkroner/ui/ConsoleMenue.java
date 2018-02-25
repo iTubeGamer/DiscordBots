@@ -9,10 +9,6 @@ public class ConsoleMenue implements IConsoleMenue {
 		this.bot = bot;
 	}
 
-	public ConsoleMenue() {
-		// TODO Auto-generated constructor stub
-	}
-
 	@Override
 	public void startMenue(Bot bot) {
 		customizeBot();

@@ -67,7 +67,7 @@ public class TempChannelBot extends Bot {
 
 	public TempChannelBot(String token) {
 		super("TempChannels");
-		super.addConsoleMenue(new TempChannelMenue(tempChannelsByGuild));
+		super.addConsoleMenue(new TempChannelMenue(this, tempChannelsByGuild));
 		super.addLogging("tc");
 		super.addDatabase("TempChannels");
 		home = System.getProperty("user.home");
@@ -106,7 +106,7 @@ public class TempChannelBot extends Bot {
 		executor.scheduleAtFixedRate(checkEvent, 1, 1, TimeUnit.MINUTES);
 		Logger.info("TempChannels startet up and ready 2 go!");
 		still_in_startup_mode = false;
-		updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
+		//TODO updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
 	}
 
 	@EventSubscriber

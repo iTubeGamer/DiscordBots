@@ -21,15 +21,13 @@ import sx.blah.discord.handle.obj.IVoiceChannel;
 public class TempChannelMenue extends ConsoleMenue {
 	private HashMap<IGuild, TempChannelMap> tempChannelsByGuild;
 
-	public TempChannelMenue(HashMap<IGuild, TempChannelMap> tempChannelsByGuild) {
-		super();
+	public TempChannelMenue(Bot bot, HashMap<IGuild, TempChannelMap> tempChannelsByGuild) {
+		super(bot);
 		this.tempChannelsByGuild = tempChannelsByGuild;
 	}
 
 	@Override
 	public void startMenue(Bot bot) {
-		super.startMenue(bot);
-
 		int auswahl = 0;
 		while (!(auswahl == 4 | auswahl == 3)) {
 

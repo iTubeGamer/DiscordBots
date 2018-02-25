@@ -13,8 +13,8 @@ import de.maxkroner.reader.JokeFileReader;
 public class JokeBotMenue extends ConsoleMenue {
 	private JokeDatabase jokeDatabase;
 
-	public JokeBotMenue(JokeDatabase jokeDatabase) {
-		super();
+	public JokeBotMenue(Bot bot, JokeDatabase jokeDatabase) {
+		super(bot);
 		this.jokeDatabase = jokeDatabase;
 	}
 
@@ -23,8 +23,6 @@ public class JokeBotMenue extends ConsoleMenue {
 	}
 
 	public void startMenue(Bot bot) {
-		super.startMenue(bot);
-
 		int auswahl = 0;
 		while (!(auswahl == 5 | auswahl == 4)) {
 

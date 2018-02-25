@@ -18,7 +18,7 @@ public class JokeBot extends Bot {
 
 	public JokeBot(String token) {
 		super("JokeBot");
-		JokeBotMenue jbMenue = new JokeBotMenue(new JokeDatabase());
+		JokeBotMenue jbMenue = new JokeBotMenue(this, new JokeDatabase());
 		super.addConsoleMenue(jbMenue);
 		super.addLogging("jb");
 		super.run(token);
