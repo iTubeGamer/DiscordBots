@@ -47,6 +47,7 @@ public abstract class Bot {
 	private String commandPrefix;
 	private Character optionIdentifier;
 	private Instant startup;
+	private Instant lastUpdate;
 	protected DiscordBotListAPI api;
 	
 	/**
@@ -57,6 +58,7 @@ public abstract class Bot {
 		 this.botName = botName;
 		 setHomePath();
 		 startup = Instant.now();
+		 lastUpdate = Instant.now();
 	}
 	
 	public Bot addConsoleMenue(IConsoleMenue menue){
@@ -373,14 +375,18 @@ public abstract class Bot {
 	}
 	
 	protected void updateGuildCount(int count, String token, String botId){
-		if(api == null){
-			api = new DiscordBotListAPI.Builder()
-	                .token(token)
-	                .build();
+		Duration timeSinceLastUpdate = Duration.between(lastUpdate, Instant.now());
+		if(timeSinceLastUpdate.getSeconds() >= 10){
+			if(api == null){
+				api = new DiscordBotListAPI.Builder()
+		                .token(token)
+		                .build();
+			}
+			
+			api.setStats(botId, count);
+			logger.info("Updated guild count for bot " + botId);
+			lastUpdate = Instant.now();
 		}
-		
-		api.setStats(botId, count);
-		logger.info("Updated guild count for bot " + botId);
 	}
 	
 	private void setHomePath() {

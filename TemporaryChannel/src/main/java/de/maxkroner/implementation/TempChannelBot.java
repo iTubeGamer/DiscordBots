@@ -106,7 +106,6 @@ public class TempChannelBot extends Bot {
 		executor.scheduleAtFixedRate(checkEvent, 1, 1, TimeUnit.MINUTES);
 		Logger.info("TempChannels startet up and ready 2 go!");
 		still_in_startup_mode = false;
-		updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
 	}
 
 	@EventSubscriber
@@ -120,6 +119,7 @@ public class TempChannelBot extends Bot {
 				tempChannelsByGuild.put(guild, tempChannelMap);
 				importStashedChannelsForGuild(guild);
 				removeUnknownChannelsForGuild(guild);
+				updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
 			}	
 		}
 	}
