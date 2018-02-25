@@ -119,8 +119,8 @@ public class TempChannelBot extends Bot {
 				tempChannelsByGuild.put(guild, tempChannelMap);
 				importStashedChannelsForGuild(guild);
 				removeUnknownChannelsForGuild(guild);
-			}
-			updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
+				updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
+			}	
 		}
 	}
 
@@ -361,25 +361,7 @@ public class TempChannelBot extends Bot {
 
 	@CommandHandler("help")
 	protected void executeHelpCommand(MessageReceivedEvent event, Command command) {
-		StringBuilder strBuilderCreate = new StringBuilder().append("Command structure:\n")
-				.append("`!c [-option [argument1] [argument2] ...] [...]`\n\n").append("List of options:\n")
-				.append("`-p [@User1 @User2 ...]`\t ***private:*** *only mentioned users may join*\n")
-				.append("`-m [@User1 @User2 ...]`\t ***move:*** *move users into new channel*\n")
-				.append("`-t x` \t\t\t\t\t\t\t\t\t\t ***timeout:*** *delete channel after being x minutes empty*\n")
-				.append("`-l x` \t\t\t\t\t\t\t\t\t\t ***limit:*** *set user limit to x*\n")
-				.append("`-n \"channel name\"`\t\t\t   ***name:*** *give your channel a name*\n\n").append("Example:\n")
-				.append("`!c -n \"channel name\" -p @User1 -t 20`");
-
-		StringBuilder strBuilderDelete = new StringBuilder().append("`!cc` \t\t\t  ***channel clear:*** *delete only your empty TempChannels*\n")
-				.append("`!cc -f`\t\t ***channel clear force:*** *forces the deletion of all your TempChannels*");
-
-		EmbedBuilder builder = new EmbedBuilder();
-		builder.withColor(0, 255, 0).appendField("Create new TempChannel", strBuilderCreate.toString(), false)
-				.appendField("Delete all your TempChannels", strBuilderDelete.toString(), false)
-				.appendField("Kick User from TempChannel", "`!kick @User1 @User2 ...`", false)
-				.appendField("Ban User from TempChannel", "`!ban @User1 @User2 ...`", false);
-
-		RequestBuffer.request(() -> event.getAuthor().getOrCreatePMChannel().sendMessage(builder.build()));
+		sendMessage("List of commands: https://www.maxkroner.de/projects/TempChannels/#start", event.getChannel(), false);
 	}
 	
 	@CommandHandler("tempChannelsPrefix")

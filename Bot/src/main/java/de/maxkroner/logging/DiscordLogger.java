@@ -93,9 +93,8 @@ public class DiscordLogger{
 	
 	private void configureLogging(String path) {
 		try {
-			String filename = Paths.get(path).toString() ;
 			Configurator.fromResource("tinylog.properties")
-						.addWriter(new RollingFileWriter(filename, 1000, new TimestampLabeler("yyyy-MM-dd"), new DailyPolicy()))
+						.addWriter(new RollingFileWriter(path, 1000, new TimestampLabeler("yyyy-MM-dd"), new DailyPolicy()))
 						.activate();
 		} catch (IOException e) {
 			e.printStackTrace();

@@ -15,6 +15,7 @@ public class Main {
 	
 		String token = args[0];			
 		bot = new TempChannelBot(token);
+		bot.run(token);
 		Runtime.getRuntime().addShutdownHook(new ShutdownHook(bot));
 	}
 

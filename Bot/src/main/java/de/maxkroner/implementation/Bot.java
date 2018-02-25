@@ -70,12 +70,12 @@ public abstract class Bot {
 	}
 	
 	public Bot addLogging(String loggingPrefix){
-		logger = new DiscordLogger(Paths.get(homePath, "log" + loggingPrefix + ".log").toString());
+		logger = new DiscordLogger(Paths.get(homePath, "log", loggingPrefix + ".log").toString());
 		return this;
 	}
 	
 	public Bot addDatabase(String databaseName){
-		this.db = new BotDatabase(Paths.get(homePath, "db" + "databaseName").toString());
+		this.db = new BotDatabase(Paths.get(homePath, "db", databaseName).toString());
 		return this;
 	}
 	
