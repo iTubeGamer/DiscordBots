@@ -375,8 +375,8 @@ public abstract class Bot {
 	}
 	
 	protected void updateGuildCount(int count, String token, String botId){
-		Duration timeSinceLastUpdate = Duration.between(lastUpdate, Instant.now());
-		if(timeSinceLastUpdate.getSeconds() >= 10){
+		long timeSinceLastUpdate = Duration.between(lastUpdate, Instant.now()).getSeconds();
+		if(timeSinceLastUpdate >= 10){
 			if(api == null){
 				api = new DiscordBotListAPI.Builder()
 		                .token(token)

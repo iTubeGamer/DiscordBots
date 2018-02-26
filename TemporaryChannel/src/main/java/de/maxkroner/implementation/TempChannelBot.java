@@ -118,10 +118,10 @@ public class TempChannelBot extends Bot {
 				TempChannelMap tempChannelMap = new TempChannelMap();
 				tempChannelsByGuild.put(guild, tempChannelMap);
 				importStashedChannelsForGuild(guild);
-				removeUnknownChannelsForGuild(guild);
-				updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
+				removeUnknownChannelsForGuild(guild);	
 			}	
-		}
+			updateGuildCount(getClient().getGuilds().size(), Keys.discordbotsorgToken, Keys.botId);
+		}	
 	}
 
 	@EventSubscriber
