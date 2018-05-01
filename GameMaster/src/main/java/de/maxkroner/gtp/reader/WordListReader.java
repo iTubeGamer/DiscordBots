@@ -38,13 +38,13 @@ public class WordListReader {
 					} else {
 						throw new IOException("Wrong word list format.");
 					}
-					
+					//each following line contains one word
 					while ((line = reader.readLine()) != null) {
 						wordListTO.addWord(line);
 					}
 					
 					if(wordListTO.getWordMap().isEmpty()){
-							throw new IOException("No words found in list.");
+						throw new IOException("No words found in list.");
 					}
 					
 					wordLists.add(wordListTO);

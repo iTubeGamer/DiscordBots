@@ -13,15 +13,14 @@ public class Main {
 			System.exit(1);
 		}
 		
-		//add gameFactories 
-		GameProducer gameProducer = new GameProducer();
-		gameProducer.addGameFactory(new GuessThePicGameFactory());
-	
 		String token = args[0];			
 		GameMasterBot bot = new GameMasterBot();
+		
+		//add gameFactories 
+		GameProducer gameProducer = new GameProducer();
+		gameProducer.addGameFactory(new GuessThePicGameFactory(bot));	
 		bot.setGameProducer(gameProducer);
-		bot.addLogging("gm");
-		bot.addDatabase("GameMaster");
+		
 		bot.run(token);
 		Runtime.getRuntime().addShutdownHook(new ShutdownHook(bot));
 	}

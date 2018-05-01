@@ -31,8 +31,7 @@ public class ImageUrlReader {
 	 */
 	public static List<String> getImageUrlsForTerm(String term, int amount) {
 		
-		try{	
-			
+		try{		
 			List<String> urls = new ArrayList<>();
 			start = 1;
 			
@@ -128,7 +127,6 @@ public class ImageUrlReader {
 			List<String> urlsForWord = getImageUrlsForTerm(word, Values.IMAGES_PER_WORD_IN_DB);
 			wordList.addUrlForWord(word, urlsForWord);
 		}
-		
 	}
 	
 	

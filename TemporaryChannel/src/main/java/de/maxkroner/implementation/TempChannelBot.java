@@ -68,8 +68,6 @@ public class TempChannelBot extends Bot {
 	public TempChannelBot(String token) {
 		super("TempChannels");
 		super.addConsoleMenue(new TempChannelMenue(this, tempChannelsByGuild));
-		super.addLogging("tc");
-		super.addDatabase("TempChannels");
 		home = System.getProperty("user.home");
 		path_serialized_tempChannels = Paths.get(home, "discordBots", "TempChannels", "tmp").toString();
 		addCommandParsing(this.getClass());

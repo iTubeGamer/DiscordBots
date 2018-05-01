@@ -52,6 +52,10 @@ public class Values {
 	
 	//---GuessThePic---//
 	
+	public static final String MESSAGE_GTP_CHOOSE_LIST = "Choose one of the following word lists:";
+	
+	public static final String MESSAGE_GTP_ERROR_NO_LIST_CHOSEN = "Please pick a word list before starting the game.";
+	
 	public static final String MESSAGE_GTP_NEW_ROUND = "Starting Round {}";
 	
 	public static final String MESSAGE_GTP_QUESTION = "What am I searching for on google images?";

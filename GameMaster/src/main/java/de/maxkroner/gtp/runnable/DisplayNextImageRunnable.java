@@ -6,21 +6,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.pmw.tinylog.Logger;
 
 import de.maxkroner.gtp.database.Word;
-import de.maxkroner.model.GameService;
+import de.maxkroner.model.IGameService;
 import de.maxkroner.values.Values;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.util.EmbedBuilder;
 import sx.blah.discord.util.RequestBuffer;
 
 public class DisplayNextImageRunnable<E> implements Runnable {
-	private GameService gameService;
+	private IGameService gameService;
 	private IChannel channel;
 	private Word word;
 	private AtomicInteger image_count;
 	private AtomicInteger hint_count;
 
 
-	public DisplayNextImageRunnable(GameService gameService, IChannel channel, Word word) {
+	public DisplayNextImageRunnable(IGameService gameService, IChannel channel, Word word) {
 		super();
 		this.gameService = gameService;
 		this.channel = channel;

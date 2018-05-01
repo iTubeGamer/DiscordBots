@@ -5,43 +5,47 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import de.maxkroner.db.GameMasterDatabase;
 import de.maxkroner.values.Values;
 
-
 public class GTPDatabaseTest {
-	private GTPDatabase db = new GTPDatabase("gmgtptest");
+	String home = System.getProperty("user.home");
+	private GameMasterDatabase gmdb = new GameMasterDatabase(Paths.get(home, "discordBots", "GameMaster", "db", "testdb").toString());
+	private GTPDatabase db = new GTPDatabase(gmdb);
+	
+	 @Before
+	    public void resetDb() {
+		 gmdb.resetDatabase();
+		 db.createTablesIfNotExist();
+	    }
 	
 	@Test
 	public void createDatabaseTables() throws SQLException{
-		//GIVEN
-		db.resetDatabase();
-
 		//THEN
-		assertThat(db.getRowCount("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'IMAGES'"), is(1));
-		assertThat(db.getRowCount("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'WORDS'"), is(1));
-		assertThat(db.getRowCount("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'LISTS'"), is(1));
-		assertThat(db.getRowCount("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'LISTNESTING'"), is(1));
-		assertThat(db.getRowCount("SELECT COUNT(*) FROM images"), is(0));
-		assertThat(db.getRowCount("SELECT COUNT(*) FROM words"), is(0));
-		assertThat(db.getRowCount("SELECT COUNT(*) FROM lists"), is(0));
-		assertThat(db.getRowCount("SELECT COUNT(*) FROM listnesting"), is(0));
+		assertThat(gmdb.getRowCount("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'IMAGES'"), is(1));
+		assertThat(gmdb.getRowCount("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'WORDS'"), is(1));
+		assertThat(gmdb.getRowCount("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'LISTS'"), is(1));
+		assertThat(gmdb.getRowCount("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'LISTNESTING'"), is(1));
+		assertThat(gmdb.getRowCount("SELECT COUNT(*) FROM images"), is(0));
+		assertThat(gmdb.getRowCount("SELECT COUNT(*) FROM words"), is(0));
+		assertThat(gmdb.getRowCount("SELECT COUNT(*) FROM lists"), is(0));
+		assertThat(gmdb.getRowCount("SELECT COUNT(*) FROM listnesting"), is(0));
 	}
 	
 	@Test
 	public void addList() throws SQLException{
-		//GIVEN
-		db.resetDatabase();
-		
 		//WHEN
 		long list_id_1 = db.addList("list_1", "german", "description1", 1);
 		long list_id_2 = db.addList("list_2", "english", "description2", 2);
-		ResultSet rs = db.getResultSetFromQuery("SELECT * FROM lists");
+		ResultSet rs = gmdb.getResultSetFromQuery("SELECT * FROM lists");
 		
 		//THEN
 		rs.next();
@@ -56,10 +60,7 @@ public class GTPDatabaseTest {
 	}
 	
 	@Test
-	public void addWordWithUrlsToList() throws SQLException{
-		//GIVEN
-		db.resetDatabase();
-		
+	public void addWordWithUrlsToList() throws SQLException{	
 		//WHEN
 		long list_id_1 = db.addList("list_1", "german", "description1", 1);
 		long list_id_2 = db.addList("list_2", "english", "description2", 1);
@@ -74,9 +75,9 @@ public class GTPDatabaseTest {
 		urls.add("url3");
 		long word_id_2 = db.addWordWithUrlsToList(1, "list_2", word2, urls);
 		
-		ResultSet rs_words = db.getResultSetFromQuery("SELECT * FROM words");
-		ResultSet rs_1 = db.getResultSetFromQuery("SELECT * FROM images WHERE word_id=" + word_id_1);
-		ResultSet rs_2 = db.getResultSetFromQuery("SELECT * FROM images WHERE word_id=" + word_id_2);
+		ResultSet rs_words = gmdb.getResultSetFromQuery("SELECT * FROM words");
+		ResultSet rs_1 = gmdb.getResultSetFromQuery("SELECT * FROM images WHERE word_id=" + word_id_1);
+		ResultSet rs_2 = gmdb.getResultSetFromQuery("SELECT * FROM images WHERE word_id=" + word_id_2);
 		
 		//THEN
 		rs_words.next();
@@ -107,9 +108,6 @@ public class GTPDatabaseTest {
 	
 	@Test
 	public void listNestingIntegrityCheck(){
-		//GIVEN
-		db.resetDatabase();
-		
 		//WHEN	
 		try {
 			long list_id_1 = db.addList("list_1", "german", "description", 1);

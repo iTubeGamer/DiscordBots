@@ -1,6 +1,7 @@
 package de.maxkroner.gtp.implementation;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -13,7 +14,7 @@ import de.maxkroner.gtp.database.Word;
 import de.maxkroner.gtp.runnable.DisplayNextImageRunnable;
 import de.maxkroner.gtp.values.Keys;
 import de.maxkroner.model.Game;
-import de.maxkroner.model.GameService;
+import de.maxkroner.model.IGameService;
 import de.maxkroner.model.GameState;
 import de.maxkroner.values.Values;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
@@ -23,46 +24,34 @@ import sx.blah.discord.util.EmbedBuilder;
 import sx.blah.discord.util.RequestBuffer;
 
 public class GuessThePicGame extends Game{
-	private static boolean isInitialized = false;
 	private static ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(2);
-	private static GTPDatabase db;
 	
-	private String currentWord;
+	private GTPDatabase db;
 	private Long list_id;
 	private Word word;
 	private String lastUrl ="";
 	
 	private ScheduledFuture<?> imageFuture;
 
-	public GuessThePicGame(GameService gameService, IChannel channel, IUser gameOwner, long list_id) {
-		this(gameService, channel, gameOwner);
-		this.list_id = list_id;
-	}
-	
-	public GuessThePicGame(GameService gameService, IChannel channel, IUser gameOwner) {
+	public GuessThePicGame(IGameService gameService, IChannel channel, IUser gameOwner, GTPDatabase db, Long list_id) {
 		super(gameService, channel);
 		setGameOwner(gameOwner);
-	}
-	
-	protected static GTPDatabase getDatabase(){
-		initialize();
-		return db;
+		this.db = db;
+		this.list_id = list_id;
+		if(this.list_id == null){
+			showLists();
+		}		
 	}
 
-	public static void initialize(){
-		if(!isInitialized){
-			Keys.readKeys();
-			db = new GTPDatabase();
-			db.updateWordDatabase();
-			isInitialized = true;
-		}
-	}
 
 	@Override
 	public void start() {
 		if(list_id != null){
 			setRound(1);
 			startNewRound();
+		} else {
+			sendMessage(Values.MESSAGE_GTP_ERROR_NO_LIST_CHOSEN);
+			showLists();
 		}
 	}
 	
@@ -70,7 +59,7 @@ public class GuessThePicGame extends Game{
 	@Override
 	public void nextRound() {
 		imageFuture.cancel(true);
-		sendMessage(Values.getMessageString(Values.MESSAGE_GTP_SKIP_ROUND, String.valueOf(getRound()), currentWord));
+		sendMessage(Values.getMessageString(Values.MESSAGE_GTP_SKIP_ROUND, String.valueOf(getRound()), word.getWord()));
 		increaseRound();
 		startNewRound();
 	}
@@ -79,10 +68,10 @@ public class GuessThePicGame extends Game{
 	public void onMessageReceivedEvent(MessageReceivedEvent event) {
 		String message = event.getMessage().getContent();
 		if(getGameState().equals(GameState.RoundRunning) && 
-				message.toLowerCase().equals(currentWord.toLowerCase())){
+				message.toLowerCase().equals(word.getWord().toLowerCase())){
 			imageFuture.cancel(true);
 			setGameState(GameState.RoundFinished);
-			sendMessage(Values.getMessageString(Values.MESSAGE_GTP_RIGHT_GUESS, event.getAuthor().toString(), currentWord));
+			sendMessage(Values.getMessageString(Values.MESSAGE_GTP_RIGHT_GUESS, event.getAuthor().toString(), word.getWord()));
 			increasePointsForPlayer(event.getAuthor());
 			increaseRound();
 			startNewRoundWithDelay(Values.ROUND_DELAY_IN_SECONDS);
@@ -116,6 +105,7 @@ public class GuessThePicGame extends Game{
 			imageFuture = scheduledExecutor.scheduleAtFixedRate(displayNextImageRunnable, 0, Values.SHOW_IMAGE_DELAY, TimeUnit.SECONDS);
 			setGameState(GameState.RoundRunning);
 		} catch (SQLException e) {
+			System.out.println(e);
 			Logger.error(e);
 			error();
 		}
@@ -156,6 +146,11 @@ public class GuessThePicGame extends Game{
 	}
 	
 	private void showLists(){
-		//TODO
+		sendMessage(Values.MESSAGE_GTP_CHOOSE_LIST);
+		int counter = 1;
+		for(String listName : db.getAllListsByGuild(getChannel().getGuild().getLongID())){
+			sendMessage("(" +counter + ") " + listName);
+			counter++;
+		}
 	}
 }

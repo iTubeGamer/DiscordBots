@@ -32,6 +32,10 @@ public class BotDatabase {
 		}		
 	}
 	
+	public Connection getConn() {
+		return conn;
+	}
+
 	public void resetDatabase()
 	{
 		executeStatement(Values.SQL_DROP_ALL_TABLES);
@@ -122,7 +126,7 @@ public class BotDatabase {
 		executeStatement(Values.SQL_CREATE_TABLE_GUILDPROPERTIES_INT);
 	}
 	
-	protected void close() {
+	public void close() {
 		try {
 			conn.close();
 			Logger.info("Database disconnected.");
@@ -131,7 +135,7 @@ public class BotDatabase {
 		}
 	}
 
-	protected Integer executeStatement(String query) {
+	public Integer executeStatement(String query) {
 		try {
 			Statement std = conn.createStatement();
 			return std.executeUpdate(query);
@@ -141,12 +145,16 @@ public class BotDatabase {
 		}	
 	}
 	
-
 	
 	public ResultSet getResultSetFromQuery(String query) {
+		return getResultSetFromQuery(query, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+	}
+
+	
+	public ResultSet getResultSetFromQuery(String query, int resultSetType, int resultSetConcurrency) {
 		Statement std;
 		try {
-			std = conn.createStatement();
+			std = conn.createStatement(resultSetType, resultSetConcurrency);
 			return std.executeQuery(query);
 		} catch (SQLException e) {
 			Logger.error(e);

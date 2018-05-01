@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import de.maxkroner.model.GameService;
+import de.maxkroner.model.IGameService;
 import de.maxkroner.model.IGame;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 
@@ -20,10 +20,16 @@ public class GameProducer {
 		gameFactories.put(gameFactory.getGameCommand(), gameFactory);
 	}
 
-	public Optional<IGame> createGame(GameService gameService, List<String> args, MessageReceivedEvent event){
+	public Optional<IGame> createGame(IGameService gameService, List<String> args, MessageReceivedEvent event){
 		String name = args.get(0);
 		args.remove(name);
 
-		return getOptionalGameFactory(name).map(T -> Optional.of(T.createGame(gameService, event, args))).orElse(Optional.empty());
+		return getOptionalGameFactory(name).map(T -> Optional.of(T.createGame(event, args))).orElse(Optional.empty());
+	}
+	
+	public void initializeGameModes(){
+		for (IGameFactory factory : gameFactories.values()){
+			factory.initializeGameMode();
+		}
 	}
 }

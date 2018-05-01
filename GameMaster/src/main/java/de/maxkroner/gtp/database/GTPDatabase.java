@@ -3,6 +3,7 @@ package de.maxkroner.gtp.database;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Connection;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -14,31 +15,28 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.pmw.tinylog.Logger;
 
 import de.maxkroner.database.BotDatabase;
+import de.maxkroner.db.GameMasterDatabase;
 import de.maxkroner.gtp.reader.ImageUrlReader;
 import de.maxkroner.gtp.reader.WordListReader;
 import de.maxkroner.gtp.reader.WordListTO;
 import de.maxkroner.values.Values;
 
-public class GTPDatabase extends BotDatabase {
-	private static final String GTP_DATABASE_NAME = "gmgtp";
+public class GTPDatabase {
+	private GameMasterDatabase db;
+	private Connection conn;
 
-	public GTPDatabase() {
-		this(GTP_DATABASE_NAME);
-	}
-	
-	public GTPDatabase(String databaseName){
-		super(databaseName);
+	public GTPDatabase(GameMasterDatabase db) {
+		this.db = db;
+		this.conn = db.getConn();
 		createTablesIfNotExist();
 	}
 
-	@Override
 	protected void createTablesIfNotExist() {
-		super.createTablesIfNotExist();
-		executeStatement(Values.GTP_SQL_CREATE_LISTS);
-		executeStatement(Values.GTP_SQL_CREATE_LIST_NESTING);
-		executeStatement(Values.GTP_SQL_CREATE_WORDS);
-		executeStatement(Values.GTP_SQL_CREATE_IMAGES);
-		executeStatement(Values.GTP_SQL_NESTING_INTEGRITY_TRIGGER);
+		db.executeStatement(Values.GTP_SQL_CREATE_LISTS);
+		db.executeStatement(Values.GTP_SQL_CREATE_LIST_NESTING);
+		db.executeStatement(Values.GTP_SQL_CREATE_WORDS);
+		db.executeStatement(Values.GTP_SQL_CREATE_IMAGES);
+		db.executeStatement(Values.GTP_SQL_NESTING_INTEGRITY_TRIGGER);
 	}
 
 	/**
@@ -56,7 +54,7 @@ public class GTPDatabase extends BotDatabase {
 	 * @throws SQLException 
 	 */
 	public long addWordWithUrlsToList(long guild_id, String list_name, String word, List<String> urls) throws SQLException {
-		long list_id = getListIdForList(guild_id, list_name);
+		long list_id = getListIdByNameAndGuild(guild_id, list_name);
 		return addWordWithUrlsToList(list_id, word, urls);	
 	}
 	
@@ -74,7 +72,7 @@ public class GTPDatabase extends BotDatabase {
 		
 		st.executeBatch();
 
-		Logger.info("Inserted word {} with {} urls for list {} into database", word, urls.size(), list_id);
+		Logger.info("Inserted word {} with {} urls for list with id {} into database", word, urls.size(), list_id);
 		return word_id;
 	}
 
@@ -141,6 +139,21 @@ public class GTPDatabase extends BotDatabase {
 		        }
 	}
 	
+	public List<String> getAllListsByGuild(long guild_id){
+		ArrayList<String> lists = new ArrayList<String>();
+		String query = "SELECT name FROM lists WHERE guild_id=" + guild_id + " OR guild_id=0;";
+		ResultSet rs = db.getResultSetFromQuery(query);
+		try{
+		while(rs.next()){
+			lists.add(rs.getString(1));
+		}
+		} catch (SQLException e){
+			Logger.error(e);
+		}
+		
+		return lists;
+	}
+	
 	public long addListNesting(long outer_list_id, long inner_list_id) throws SQLException{
 		String query = "INSERT INTO listnesting (outer_list_id, inner_list_id) VALUES (?, ?)";
 		
@@ -167,7 +180,7 @@ public class GTPDatabase extends BotDatabase {
 	}
 	
 	public long getOrCreateList(String list_name, String language, String description, long guild_id) throws SQLException{		
-		Long list_id = getListIdForList(guild_id, list_name);
+		Long list_id = getListIdByNameAndGuild(guild_id, list_name);
 		if(list_id == null){
 				return addList(list_name, language, description, guild_id);	
 		} else {
@@ -175,18 +188,33 @@ public class GTPDatabase extends BotDatabase {
 		}		
 	}
 	
-	public Long getListIdForList(long guild_id, String list_name) throws SQLException {
-		ResultSet rs = getResultSetFromQuery("SELECT list_id FROM lists WHERE name='" + list_name + "' AND guild_id=" + guild_id + ";");
+	/**
+	 * Pro
+	 * 
+	 * @param guild_id
+	 * @param list_name
+	 * @return
+	 * @throws SQLException
+	 */
+	public Long getListIdByNameAndGuild(long guild_id, String list_name) throws SQLException {
+		//does a guild specific list with the given name exist?
+		ResultSet rs = db.getResultSetFromQuery("SELECT list_id FROM lists WHERE name='" + list_name + "' AND guild_id=" + guild_id + ";");
 		if(rs.next()){
 			return rs.getLong(1);
 		} else {
-			return null;
+			//does a general list with the given name exist?
+			rs = db.getResultSetFromQuery("SELECT list_id FROM lists WHERE name='" + list_name + "' AND guild_id=0;");
+			if(rs.next()){
+				return rs.getLong(1);
+			} else {
+				return null;
+			}		
 		}
 	}
 	
 	public List<String> getWordsForList(long list_id) throws SQLException{
 		List<String> words = new ArrayList<>();
-		ResultSet rs = getResultSetFromQuery("SELECT name FROM words WHERE list_id =" + list_id);
+		ResultSet rs = db.getResultSetFromQuery("SELECT name FROM words WHERE list_id =" + list_id);
 		while(rs.next()){
 			words.add(rs.getString(1));
 		}
@@ -195,10 +223,11 @@ public class GTPDatabase extends BotDatabase {
 	
 	private Set<String> getRandomImagesForWord(long word_id, int amount) throws SQLException{
 		Set<String> urls = new HashSet<>();
-		ResultSet rs = getResultSetFromQuery("SELECT url FROM images WHERE word_id =" + word_id);
+		ResultSet rs = db.getResultSetFromQuery("SELECT url FROM images WHERE word_id =" + word_id, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 		if(rs.last() && (rs.getRow() >= amount)){
+			int availabeImages = rs.getRow();
 			while(urls.size() < amount){
-				int index = ThreadLocalRandom.current().nextInt(1, rs.getRow() + 1);
+				int index = ThreadLocalRandom.current().nextInt(1, availabeImages + 1);
 				rs.absolute(index);
 				urls.add(rs.getString(1));
 			}
@@ -215,7 +244,7 @@ public class GTPDatabase extends BotDatabase {
 	 * @throws SQLException
 	 */
 	public Word getRandomWordFromList(long list_id, int imageAmount) throws SQLException{
-		ResultSet rs = getResultSetFromQuery("SELECT word_id, name FROM words WHERE list_id =" + list_id);
+		ResultSet rs = db.getResultSetFromQuery("SELECT word_id, name FROM words WHERE list_id =" + list_id, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 		if(rs.last()){
 				int index = ThreadLocalRandom.current().nextInt(1, rs.getRow() + 1);
 				rs.absolute(index);
@@ -223,13 +252,16 @@ public class GTPDatabase extends BotDatabase {
 				String wordName = rs.getString(2);
 				Word word = new Word(word_id, wordName);
 				word.setImageUrls(getRandomImagesForWord(word_id, imageAmount));
+				return word;
+		} else {
+			throw new SQLException("No words founds to pick from");
 		}
-		throw new SQLException("No words founds to pick from");
+		
 	}
 	
 	public boolean existsWordInList(String word, long list_id) throws SQLException{
 		String query = "SELECT COUNT(*) FROM words WHERE name='" + word + "' AND list_id=" + list_id;
-		ResultSet rs = getResultSetFromQuery(query);
+		ResultSet rs = db.getResultSetFromQuery(query);
 		if(rs.next()){
 			int count = rs.getInt(1);
 			if(count == 1){
@@ -261,10 +293,14 @@ public class GTPDatabase extends BotDatabase {
 
 	private void removeWordsAlreadyInDatabase(WordListTO wordListTO, long list_id) throws SQLException {
 		Set<String> wordsInList = wordListTO.getWordMap().keySet();
+		Set<String> wordsToRemove = new HashSet<>();
 		for (String word : wordsInList) {
 			if(existsWordInList(word, list_id)){
-				wordListTO.removeWord(word);
+				wordsToRemove.add(word);
 			}
+		}
+		for (String word : wordsToRemove) {
+			wordListTO.removeWord(word);
 		}
 	}
 

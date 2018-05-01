@@ -11,14 +11,14 @@ import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
 
 public abstract class Game implements IGame{
-	private GameService gameService;
+	private IGameService gameService;
 	private IChannel channel;
 	private IUser gameOwner;
 	private GameState gameState;
 	private int round;
 	private Map<IUser, Integer> standings;
 	
-	public Game(GameService gameService, IChannel channel) {
+	public Game(IGameService gameService, IChannel channel) {
 		super();
 		this.gameService = gameService;
 		this.channel = channel;
@@ -28,19 +28,12 @@ public abstract class Game implements IGame{
 		this.gameOwner = null;
 	}
 	
-	public Game(IChannel channel, IUser gameOwner, GameService gameService) {
+	public Game(IChannel channel, IUser gameOwner, IGameService gameService) {
 		this(gameService, channel);
 		this.gameOwner = gameOwner;
 	}
 	
-	/**
-	 * This method is called once during bot startup on every game.
-	 */
-	public static void initialize(){
-		
-	}
-	
-	protected GameService getGameService(){
+	protected IGameService getGameService(){
 		return gameService;
 	}
 

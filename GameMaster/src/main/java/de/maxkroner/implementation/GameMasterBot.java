@@ -1,12 +1,14 @@
 package de.maxkroner.implementation;
 
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.maxkroner.db.GameMasterDatabase;
 import de.maxkroner.factory.GameProducer;
-import de.maxkroner.model.GameService;
+import de.maxkroner.model.IGameService;
 import de.maxkroner.model.GameState;
 import de.maxkroner.model.IGame;
 import de.maxkroner.parsing.Command;
@@ -16,17 +18,24 @@ import sx.blah.discord.api.events.EventSubscriber;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.obj.IChannel;
 
-public class GameMasterBot extends Bot implements GameService {
+public class GameMasterBot extends Bot implements IGameService {
 	private GameProducer producer;
+	private static final String botName = "GameMaster";
+	private static final String botNameShort = "gm";
 	private Map<IChannel, IGame> gameList = new HashMap<>();
 
 	public GameMasterBot() {
-		super("GameMaster");
-		addCommandParsing(this.getClass(), Values.PREFIX, Values.OPTION_PREFIX, true);
+		super(botName);
+		String home = System.getProperty("user.home");
+		
+		addLogging(botNameShort);
+		addDatabase(new GameMasterDatabase(Paths.get(home, "discordBots", botName, "db", botName).toString()));
+		addCommandParsing(this.getClass(), Values.PREFIX, Values.OPTION_PREFIX, true);	
 	}
 
 	public void setGameProducer(GameProducer producer) {
 		this.producer = producer;
+		producer.initializeGameModes();
 	}
 
 	@Override
@@ -135,6 +144,11 @@ public class GameMasterBot extends Bot implements GameService {
 	public void gameStopped(IGame game) {
 		sendMessage(Values.getMessageString(Values.MESSAGE_GAME_OVER, game.getName()), game.getChannel(), false);
 		gameList.remove(game.getChannel());
+	}
+
+	@Override
+	public GameMasterDatabase getDatabase() {
+		return (GameMasterDatabase) db;
 	}
 
 }
