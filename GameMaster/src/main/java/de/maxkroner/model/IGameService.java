@@ -1,11 +1,10 @@
 package de.maxkroner.model;
 
 import de.maxkroner.db.GameMasterDatabase;
-import sx.blah.discord.handle.obj.IChannel;
+import de.maxkroner.implementation.IClientService;
 
-public interface IGameService {
-	public void sendMessage(String message, IChannel channel, boolean tts);
-	
+public interface IGameService extends IClientService{
+
 	public void gameStopped(IGame game);
 	
 	public GameMasterDatabase getDatabase();

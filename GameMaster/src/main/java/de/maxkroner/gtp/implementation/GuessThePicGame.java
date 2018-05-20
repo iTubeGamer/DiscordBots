@@ -38,9 +38,15 @@ public class GuessThePicGame extends Game{
 		setGameOwner(gameOwner);
 		this.db = db;
 		this.list_id = list_id;
+		startGameSetup();		
+	}
+
+
+	private void startGameSetup() {
 		if(this.list_id == null){
 			showLists();
-		}		
+		}
+		
 	}
 
 

@@ -26,7 +26,7 @@ public class JokeBotMenue extends ConsoleMenue {
 		int auswahl = 0;
 		while (!(auswahl == 5 | auswahl == 4)) {
 
-			auswahl = UserInput.getMultipleChoiceResult("What to do?", "manage database", "configure bot", "print jokes from database",
+			auswahl = ConsoleUserInput.getMultipleChoiceResult("What to do?", "manage database", "configure bot", "print jokes from database",
 					"leave menue, but keep bot running", "shut down bot");
 
 			switch (auswahl) {
@@ -40,12 +40,12 @@ public class JokeBotMenue extends ConsoleMenue {
 				printJokes();
 				break;
 			case 4:
-				if (!UserInput.getYesNoResult("Are you sure?")) {
+				if (!ConsoleUserInput.getYesNoResult("Are you sure?")) {
 					auswahl = 1;
 				}
 				break;
 			case 5:
-				if (UserInput.getYesNoResult("Are you sure?")) {
+				if (ConsoleUserInput.getYesNoResult("Are you sure?")) {
 					bot.disconnect();
 					System.exit(0);
 				} else {
@@ -58,9 +58,9 @@ public class JokeBotMenue extends ConsoleMenue {
 
 	private void printJokes() {
 		List<String> categories = jokeDatabase.getJokeCategories();
-		if (!categories.isEmpty() && UserInput.getYesNoResult("Select a category?")) {
+		if (!categories.isEmpty() && ConsoleUserInput.getYesNoResult("Select a category?")) {
 			String chosenCategory;
-			chosenCategory = (String) UserInput.getMultipleChoiceResult("Which category?", categories, Object::toString);
+			chosenCategory = (String) ConsoleUserInput.getMultipleChoiceResult("Which category?", categories, Object::toString);
 
 			System.out.println("ok, printing all jokes of category " + chosenCategory);
 			jokeDatabase.printAllJokes(chosenCategory);
@@ -70,12 +70,12 @@ public class JokeBotMenue extends ConsoleMenue {
 	}
 
 	private void manageDatabase() {
-		int auswahl = UserInput.getMultipleChoiceResult("Which database change did you think of?", "reset database", "import jokes from file",
+		int auswahl = ConsoleUserInput.getMultipleChoiceResult("Which database change did you think of?", "reset database", "import jokes from file",
 				"import Flachwitze", "never mind");
 
 		switch (auswahl) {
 		case 1:
-			if (UserInput.getYesNoResult("Really? All Jokes will be deleted!")) {
+			if (ConsoleUserInput.getYesNoResult("Really? All Jokes will be deleted!")) {
 				jokeDatabase.createTable();
 				System.out.println("Database has been reset.");
 			}
@@ -96,7 +96,7 @@ public class JokeBotMenue extends ConsoleMenue {
 		int anzahl = scanner.nextInt();
 
 		// Delete existing Flachwitze?
-		if (UserInput.getYesNoResult("Delete existing Flachwitze?")) {
+		if (ConsoleUserInput.getYesNoResult("Delete existing Flachwitze?")) {
 			jokeDatabase.deleteCategory("flach");
 		}
 
@@ -108,7 +108,7 @@ public class JokeBotMenue extends ConsoleMenue {
 		jokeDatabase.insertJokes(jokes, "flach");
 
 		// print all Flachwitze?
-		if (UserInput.getYesNoResult("Print all read Flachwitze?")) {
+		if (ConsoleUserInput.getYesNoResult("Print all read Flachwitze?")) {
 			jokeDatabase.printAllJokes("flach");
 		}
 
@@ -125,14 +125,14 @@ public class JokeBotMenue extends ConsoleMenue {
 		String path = scanner.next() + scanner.nextLine();
 
 		// get format of file
-		Enum<?> format = UserInput.getMultipleChoiceResult("How is the file formatted?", FileFormat.ONE_PER_LINE, FileFormat.SEPERATED_BY_FREE_LINE);
+		Enum<?> format = ConsoleUserInput.getMultipleChoiceResult("How is the file formatted?", FileFormat.ONE_PER_LINE, FileFormat.SEPERATED_BY_FREE_LINE);
 
 		// get joke category
 		System.out.println("Which joke category?");
 		String category = scanner.next();
 
 		// read jokes, print if chosen
-		Boolean printAllJokes = UserInput.getYesNoResult("Print all read jokes?");
+		Boolean printAllJokes = ConsoleUserInput.getYesNoResult("Print all read jokes?");
 		List<String> jokes = JokeFileReader.getJokes(path, (FileFormat) format, printAllJokes);
 
 		// write jokes to database

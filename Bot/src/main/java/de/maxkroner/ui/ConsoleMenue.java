@@ -18,14 +18,14 @@ public class ConsoleMenue implements IConsoleMenue {
 		int auswahl = 0;
 		
 		while (!(auswahl==4)){
-			auswahl = UserInput.getMultipleChoiceResult("What do you want to do?", "change bot name", "change bot playing text", "change bot avatar", "exit menue");
+			auswahl = ConsoleUserInput.getMultipleChoiceResult("What do you want to do?", "change bot name", "change bot playing text", "change bot avatar", "exit menue");
 			switch(auswahl){
 			case 1: 
-				bot.changeName(UserInput.getStringAnswer("enter new bot name:")); break;
+				bot.changeName(ConsoleUserInput.getStringAnswer("enter new bot name:")); break;
 			case 2:
-				bot.changePlayingText(UserInput.getStringAnswer("enter new playing text:")); break;
+				bot.changePlayingText(ConsoleUserInput.getStringAnswer("enter new playing text:")); break;
 			case 3:
-				bot.changeAvatar(UserInput.getStringAnswer("enter url to image:"), UserInput.getStringAnswer("enter image type (jpeg, png, etc.):")); break;
+				bot.changeAvatar(ConsoleUserInput.getStringAnswer("enter url to image:"), ConsoleUserInput.getStringAnswer("enter image type (jpeg, png, etc.):")); break;
 			}
 		}
 		

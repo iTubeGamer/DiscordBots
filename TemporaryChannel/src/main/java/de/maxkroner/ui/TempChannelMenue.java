@@ -31,7 +31,7 @@ public class TempChannelMenue extends ConsoleMenue {
 		int auswahl = 0;
 		while (!(auswahl == 4 | auswahl == 3)) {
 
-			auswahl = UserInput.getMultipleChoiceResult("What to do?", "print current state",
+			auswahl = ConsoleUserInput.getMultipleChoiceResult("What to do?", "print current state",
 					"configure bot", "leave menue, but keep bot running", "shut down bot");
 
 			switch (auswahl) {
@@ -42,12 +42,12 @@ public class TempChannelMenue extends ConsoleMenue {
 				customizeBot();
 				break;
 			case 3:
-				if (!UserInput.getYesNoResult("Are you sure?")) {
+				if (!ConsoleUserInput.getYesNoResult("Are you sure?")) {
 					auswahl = 1;
 				}
 				break;
 			case 4:
-				if (UserInput.getYesNoResult("Are you sure?")) {
+				if (ConsoleUserInput.getYesNoResult("Are you sure?")) {
 					Logger.info("|||---SHUTTING DOWN---|||");
 					System.exit(0);
 				} else {
@@ -70,7 +70,7 @@ public class TempChannelMenue extends ConsoleMenue {
 			break;
 		default:
 			List<IGuild> guilds = new ArrayList<>(tempChannelsByGuild.keySet());
-			chosenGuild = UserInput.getMultipleChoiceResult("For which guild?", guilds, IGuild::getName);
+			chosenGuild = ConsoleUserInput.getMultipleChoiceResult("For which guild?", guilds, IGuild::getName);
 		}
 
 		if (chosenGuild != null) {

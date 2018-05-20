@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.function.Function;
 
-public class UserInput {
+public class ConsoleUserInput {
 	private static Scanner scanner;
 	
 	private static void getScanner(){
