@@ -30,6 +30,7 @@ import sx.blah.discord.handle.impl.events.shard.DisconnectedEvent;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IUser;
+import sx.blah.discord.handle.obj.Permissions;
 import sx.blah.discord.util.DiscordException;
 import sx.blah.discord.util.Image;
 import sx.blah.discord.util.MessageBuilder;
@@ -242,19 +243,20 @@ public abstract class Bot {
 	public abstract void disconnect();
 	
 	protected void sendMessage(String message, IChannel channel, Boolean tts) {
-		RequestBuffer.request(() -> {
-			try{
-				MessageBuilder mb = new MessageBuilder(this.client).withChannel(channel);
-				if (tts)
-					mb.withTTS();
-				mb.withContent(message);
-				mb.build();
-			} catch (DiscordException e){
-				logger.warn(e);
-				throw e;
-			}
-		});
-		
+		if (client.getOurUser().getPermissionsForGuild(channel.getGuild()).contains(Permissions.SEND_MESSAGES)) {
+			RequestBuffer.request(() -> {
+				try{
+					MessageBuilder mb = new MessageBuilder(this.client).withChannel(channel);
+					if (tts)
+						mb.withTTS();
+					mb.withContent(message);
+					mb.build();
+				} catch (DiscordException e){
+					logger.warn(e);
+					throw e;
+				}
+			});
+		}	
 	}
 	
 	protected void sendPrivateMessage(IUser recepient, String message) {

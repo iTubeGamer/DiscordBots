@@ -49,9 +49,7 @@ import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
 import sx.blah.discord.handle.obj.Permissions;
-import sx.blah.discord.util.EmbedBuilder;
 import sx.blah.discord.util.MessageBuilder;
-import sx.blah.discord.util.RequestBuffer;
 
 public class TempChannelBot extends Bot {
 	private static final int timeout_for_unknown_channels = 5;
@@ -362,6 +360,7 @@ public class TempChannelBot extends Bot {
 		sendMessage("List of commands: https://www.maxkroner.de/projects/TempChannels/#start", event.getChannel(), false);
 	}
 	
+	@Override
 	@CommandHandler("tempChannelsPrefix")
 	protected void prefix(MessageReceivedEvent event, Command command) {
 		super.prefix(event, command);
@@ -578,7 +577,9 @@ public class TempChannelBot extends Bot {
 	 */
 	private void stashChannelsAndRemoveMap(IGuild guild) {
 		Logger.info("Stashing {} tempChannels from guild {}.", tempChannelsByGuild.get(guild).getAllTempChannel().size(), guild.getName());
-		stashedChannels.addAll(tempChannelsByGuild.get(guild).getAllTempChannel());
+		if(tempChannelsByGuild.get(guild) != null) {
+			stashedChannels.addAll(tempChannelsByGuild.get(guild).getAllTempChannel());
+		}	
 		tempChannelsByGuild.remove(guild);
 	}
 
