@@ -144,14 +144,17 @@ public class TempChannelBot extends Bot {
 
 		// get TempChannel for the Channel
 		TempChannelMap tempChannelMap = tempChannelsByGuild.get(event.getGuild());
-		TempChannel tempChannelToRemove = tempChannelMap.getTempChannelForChannel(deletedChannel);
+		if(deletedChannel != null) {
+			TempChannel tempChannelToRemove = tempChannelMap.getTempChannelForChannel(deletedChannel);
 
-		// delete if TempChannel exists
-		if (tempChannelToRemove != null) {
-			Logger.info("Removing TempChannel {} from map!", deletedChannel.getName());
+			// delete if TempChannel exists
+			if (tempChannelToRemove != null) {
+				Logger.info("Removing TempChannel {} from map!", deletedChannel.getName());
 
-			tempChannelMap.removeTempChannel(tempChannelToRemove);
+				tempChannelMap.removeTempChannel(tempChannelToRemove);
+			}
 		}
+		
 	}
 
 	@Override
