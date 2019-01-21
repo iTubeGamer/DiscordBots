@@ -50,6 +50,7 @@ import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
 import sx.blah.discord.handle.obj.Permissions;
 import sx.blah.discord.util.MessageBuilder;
+import sx.blah.discord.util.MissingPermissionsException;
 
 public class TempChannelBot extends Bot {
 	private static final int timeout_for_unknown_channels = 5;
@@ -130,8 +131,10 @@ public class TempChannelBot extends Bot {
 	@EventSubscriber
 	public void onGuildUnavailableEvent(GuildUnavailableEvent event) {
 		IGuild guild = event.getGuild();
-		Logger.warn("Received GuildUnavailableEvent for guild {}", guild.getName());
-		stashChannelsAndRemoveMap(guild);
+		if(guild != null) {
+			Logger.warn("Received GuildUnavailableEvent for guild {}", guild.getName());
+			stashChannelsAndRemoveMap(guild);	
+		}	
 	}
 
 	@EventSubscriber
@@ -375,7 +378,11 @@ public class TempChannelBot extends Bot {
 		Logger.info("Created channel: {}", channel.getName());
 
 		// put channel to temp category
-		channel.changeCategory(getTempCategoryForGuild(guild));
+		ICategory tempCategoryForGuild = getTempCategoryForGuild(guild);
+		if(tempCategoryForGuild != null) {
+			channel.changeCategory(tempCategoryForGuild);
+		}
+		
 
 		// set user limit
 		channel.changeUserLimit(limit);
@@ -428,7 +435,16 @@ public class TempChannelBot extends Bot {
 		if (!temp_categories.isEmpty()) {
 			targetCategory = temp_categories.get(0);
 		} else {
-			targetCategory = guild.createCategory("Temporary Channel");
+			try{
+				ICategory newCategory = guild.createCategory("Temporary Channel");
+				targetCategory = newCategory;
+			} catch(MissingPermissionsException e) {
+				Logger.info("Could not create category because of missing permissions");
+				return null;
+			} catch(Exception e) {
+				Logger.info("Error while creating category");
+			}
+			
 		}
 
 		return targetCategory;
@@ -550,8 +566,12 @@ public class TempChannelBot extends Bot {
 			}
 			for (IChannel channel : tempCategory.getChannels()) {
 				textChannelInTempCategory = true;
-				channel.delete();
-				Logger.info("Deleted text channel {} in TempChannel category", channel.getName());
+				try {
+					channel.delete();
+					Logger.info("Deleted text channel {} in TempChannel category", channel.getName());
+				} catch(MissingPermissionsException e) {
+					Logger.info("Could not delte channel because of missing permissions");
+				}
 			}
 			if (textChannelInTempCategory) {
 				sendMessage(

@@ -34,6 +34,7 @@ import sx.blah.discord.handle.obj.Permissions;
 import sx.blah.discord.util.DiscordException;
 import sx.blah.discord.util.Image;
 import sx.blah.discord.util.MessageBuilder;
+import sx.blah.discord.util.MissingPermissionsException;
 import sx.blah.discord.util.RequestBuffer;
 
 public abstract class Bot {
@@ -254,6 +255,8 @@ public abstract class Bot {
 				} catch (DiscordException e){
 					logger.warn(e);
 					throw e;
+				} catch (MissingPermissionsException e) {
+					logger.info("Could not send message because of missing permissions.");
 				}
 			});
 		}	
