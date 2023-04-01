@@ -1,4 +1,5 @@
 import discord
+import config
 
 topic_channels_category_name = "Topic Channels" # name of the category for topic channels
 setup_text_channel_name = "setup"  # ID of the setup text-channel
@@ -78,4 +79,4 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 client = MyClient(intents=intents)
-client.run('OTQyMzg0MDUyMjM1ODIxMTg2.GgUEcZ.O5NafhRTf5y6oqO_W8V_7AUM6kB0N3yC_43KlQ')
+client.run(config.token)
