@@ -1,16 +1,19 @@
 import discord
 import config
 import asyncio
+import logging
 
 topic_channels_category_name = "Topic Channels" # name of the category for topic channels
 setup_text_channel_name = "topic-channels"  # name of the setup text-channel
 checkmark_emoji = discord.PartialEmoji(name='✅')
 
+#setup logging
+handler = logging.FileHandler(filename='/app/log/serious-gaming-bot.log', encoding='utf-8', mode='w')
 
 class MyClient(discord.Client):
 
     async def on_ready(self):
-        print(f'Logged on as {self.user}!')    
+        logging.info(f'Logged on as {self.user}!')    
 
 
     async def on_raw_reaction_add(self, payload:discord.RawReactionActionEvent):
@@ -27,7 +30,7 @@ class MyClient(discord.Client):
             return
 
         # Add user to topic channel 
-        print(f'Adding member {member.name} to topic-channel "{topic_channel.name}" on guild "{guild.name}"')
+        logging.info(f'Adding member {member.name} to topic-channel "{topic_channel.name}" on guild "{guild.name}"')
         await topic_channel.set_permissions(member, view_channel=True)
 
 
@@ -45,7 +48,7 @@ class MyClient(discord.Client):
             return
 
         # Remove user from topic channel
-        print(f'Removing member {member.name} from topic-channel "{topic_channel.name}" on guild "{guild.name}"')
+        logging.info(f'Removing member {member.name} from topic-channel "{topic_channel.name}" on guild "{guild.name}"')
         await topic_channel.set_permissions(member, view_channel=False) 
 
 
@@ -73,7 +76,7 @@ class MyClient(discord.Client):
                 for channel in category.text_channels:
                     if (channel.name.upper() == name_of_topic_channel.upper()):
                         topic_channel = channel
-        if(topic_channel is None): print(f'Did not find topic channel "{name_of_topic_channel}" on guild "{guild.name}"')
+        if(topic_channel is None): logging.error(f'Did not find topic channel "{name_of_topic_channel}" on guild "{guild.name}"')
         return topic_channel
 
 
@@ -81,4 +84,4 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 client = MyClient(intents=intents)
-client.run(config.token)
+client.run(config.token, log_handler=handler)
