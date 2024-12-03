@@ -2,3 +2,5 @@ config.py
 config*py*
 launch.json
 tasks.json
+.env
+*.log
