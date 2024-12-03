@@ -1,87 +1,124 @@
 import discord
+from discord import TextChannel, CategoryChannel, Member, Message, RawReactionActionEvent, PartialEmoji
 import config
 import asyncio
 import logging
+from typing import Optional
 
-topic_channels_category_name = "Topic Channels" # name of the category for topic channels
-setup_text_channel_name = "topic-channels"  # name of the setup text-channel
-checkmark_emoji = discord.PartialEmoji(name='✅')
+# Constants
+class BotConfig:
+    TOPIC_CHANNELS_CATEGORY = "Topic Channels"
+    SETUP_CHANNEL = "topic-channels"
+    CHECKMARK_EMOJI = PartialEmoji(name='✅')
+    LOG_FILE = './log/serious-gaming-bot.log'
 
-#setup logging
-handler = logging.FileHandler(filename='/app/log/serious-gaming-bot.log', encoding='utf-8', mode='w')
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(filename=BotConfig.LOG_FILE, encoding='utf-8', mode='w'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('serious-gaming-bot')
 
-class MyClient(discord.Client):
+class TopicChannelBot(discord.Client):
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(intents=intents)
 
     async def on_ready(self):
-        logging.info(f'Logged on as {self.user}!')    
+        logger.info(f'Bot is ready and logged in as {self.user}!')
+        logger.info(f'Connected to {len(self.guilds)} guilds')
 
+    async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
+        """Handle adding users to topic channels when they react with checkmark."""
+        try:
+            result = await self._handle_reaction(payload, add_access=True)
+            if result:
+                member, topic_channel = result
+                logger.info(f'Added member {member.name} to topic-channel "{topic_channel.name}" '
+                          f'on guild "{topic_channel.guild.name}"')
+        except Exception as e:
+            logger.error(f'Error handling reaction add: {str(e)}', exc_info=True)
 
-    async def on_raw_reaction_add(self, payload:discord.RawReactionActionEvent):
-        emoji = payload.emoji
+    async def on_raw_reaction_remove(self, payload: RawReactionActionEvent):
+        """Handle removing users from topic channels when they remove their reaction."""
+        try:
+            result = await self._handle_reaction(payload, add_access=False)
+            if result:
+                member, topic_channel = result
+                logger.info(f'Removed member {member.name} from topic-channel "{topic_channel.name}" '
+                          f'on guild "{topic_channel.guild.name}"')
+        except Exception as e:
+            logger.error(f'Error handling reaction remove: {str(e)}', exc_info=True)
+
+    async def _handle_reaction(self, payload: RawReactionActionEvent, add_access: bool) -> Optional[tuple[Member, TextChannel]]:
+        """Common logic for handling reactions (both add and remove)."""
+        if payload.emoji != BotConfig.CHECKMARK_EMOJI:
+            return None
+
         channel = self.get_channel(payload.channel_id)
-        guild = channel.guild
-        results = await asyncio.gather(guild.fetch_member(payload.user_id), channel.fetch_message(payload.message_id))
-        member = results[0]
-        message = results[1]
+        if not channel or channel.name.upper() != BotConfig.SETUP_CHANNEL.upper():
+            return None
 
-        # Retrieve topic_channel to subscribe
-        topic_channel = await client.getTopicChannel(emoji, channel, message)
-        if(topic_channel is None):
-            return
+        try:
+            guild = channel.guild
+            results = await asyncio.gather(
+                guild.fetch_member(payload.user_id),
+                channel.fetch_message(payload.message_id)
+            )
+            member, message = results
 
-        # Add user to topic channel 
-        logging.info(f'Adding member {member.name} to topic-channel "{topic_channel.name}" on guild "{guild.name}"')
-        await topic_channel.set_permissions(member, view_channel=True)
+            topic_channel = await self._get_topic_channel(guild, message.content)
+            if topic_channel:
+                await topic_channel.set_permissions(member, view_channel=add_access)
+                return member, topic_channel
+            
+            return None
 
+        except discord.NotFound:
+            logger.warning(f'Member or message not found for reaction in guild {channel.guild.name}')
+            return None
+        except discord.Forbidden:
+            logger.error(f'Bot lacks permissions to modify channel access in guild {channel.guild.name}')
+            return None
 
-    async def on_raw_reaction_remove(self, payload:discord.RawReactionActionEvent):
-        emoji = payload.emoji
-        channel = self.get_channel(payload.channel_id)
-        guild = channel.guild
-        results = await asyncio.gather(guild.fetch_member(payload.user_id), channel.fetch_message(payload.message_id))
-        member = results[0]
-        message = results[1]
+    async def _get_topic_channel(self, guild: discord.Guild, channel_name: str) -> Optional[TextChannel]:
+        """Find a topic channel by name within the topic channels category."""
+        try:
+            topic_category = discord.utils.get(
+                guild.categories,
+                name=BotConfig.TOPIC_CHANNELS_CATEGORY
+            )
+            
+            if not topic_category:
+                logger.error(f'Topic channels category not found in guild "{guild.name}"')
+                return None
 
-        # Retrieve topic_channel to unsubscribe
-        topic_channel = await client.getTopicChannel(emoji, channel, message)
-        if(topic_channel is None):
-            return
+            topic_channel = discord.utils.get(
+                topic_category.text_channels,
+                name=channel_name.lower()  # Discord channel names are always lowercase
+            )
 
-        # Remove user from topic channel
-        logging.info(f'Removing member {member.name} from topic-channel "{topic_channel.name}" on guild "{guild.name}"')
-        await topic_channel.set_permissions(member, view_channel=False) 
+            if not topic_channel:
+                logger.error(f'Topic channel "{channel_name}" not found in guild "{guild.name}"')
+                return None
 
+            return topic_channel
 
-    async def getTopicChannel(self, emoji, channel, message) -> discord.TextChannel:
-        #check that reaction was with checkmark emoji
-        if(emoji != checkmark_emoji):
-            return
+        except Exception as e:
+            logger.error(f'Error finding topic channel: {str(e)}', exc_info=True)
+            return None
 
-        # check that reaction was in setup channel  
-        if (channel.name.upper() != setup_text_channel_name.upper()):
-            return    
+def main():
+    try:
+        bot = TopicChannelBot()
+        bot.run(config.token)
+    except Exception as e:
+        logger.critical(f'Failed to start bot: {str(e)}', exc_info=True)
 
-        # Get name of topic channel
-        name_of_topic_channel = message.content
-
-        # Check if guild is still in cache
-        guild = channel.guild
-        if(guild is None):
-            return
-
-        # Find topic channel by name
-        topic_channel:discord.TextChannel = None
-        for category in guild.categories:
-            if (category.name.upper() == topic_channels_category_name.upper()):
-                for channel in category.text_channels:
-                    if (channel.name.upper() == name_of_topic_channel.upper()):
-                        topic_channel = channel
-        if(topic_channel is None): logging.error(f'Did not find topic channel "{name_of_topic_channel}" on guild "{guild.name}"')
-        return topic_channel
-
-
-intents = discord.Intents.default()
-intents.message_content = True
-
-client = MyClient(intents=intents)
-client.run(config.token, log_handler=handler)
+if __name__ == "__main__":
+    main()
