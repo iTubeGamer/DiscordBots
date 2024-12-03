@@ -1,10 +1,10 @@
 import discord
-from discord import SelectOption, TextChannel, Interaction, app_commands, CategoryChannel
+from discord import SelectOption, TextChannel, Interaction, app_commands, CategoryChannel, Message
 from discord.ui import Select, View
 import logging
 import os
 import argparse
-from typing import Optional
+from typing import Optional, Dict
 from dotenv import load_dotenv
 
 def parse_arguments():
@@ -30,7 +30,7 @@ class TopicChannelSelect(Select):
                 label=channel.name,
                 value=str(channel.id),
                 description=f"Show/hide {channel.name} channel"
-            ) for channel in sorted(channels, key=lambda c: c.name.lower())  # Sort channels alphabetically
+            ) for channel in channels #sorted(channels, key=lambda c: c.name.lower())  # Sort channels alphabetically
         ]
         
         super().__init__(
@@ -70,9 +70,11 @@ class TopicChannelBot(discord.Client):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
-        intents.guilds = True  # Need this for channel events
+        intents.guilds = True
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
+        # Dictionary to store message IDs for each guild
+        self.manager_messages: Dict[int, int] = {}
 
     async def setup_hook(self):
         # Register the command for all guilds the bot is in
@@ -106,24 +108,37 @@ class TopicChannelBot(discord.Client):
                 logger.error(f"Could not find Topic Channels category in guild {guild.name}")
                 continue
 
-            # Delete old messages
             try:
-                async for message in setup_channel.history():
-                    await message.delete()
+                # Try to find existing manager message
+                existing_message = None
+                if guild.id in self.manager_messages:
+                    try:
+                        existing_message = await setup_channel.fetch_message(self.manager_messages[guild.id])
+                    except discord.NotFound:
+                        pass
+
+                view = ChannelManagerView(topic_channels)
+                content = "**Topic Channel Manager**\nSelect which channels you want to see:"
+
+                if existing_message:
+                    # Update existing message
+                    await existing_message.edit(content=content, view=view)
+                    logger.info(f"Updated channel manager message in {guild.name}")
+                else:
+                    # Create new message if none exists
+                    # First clean up any old messages
+                    async for message in setup_channel.history():
+                        await message.delete()
+                    
+                    # Send new message and store its ID
+                    message = await setup_channel.send(content=content, view=view)
+                    self.manager_messages[guild.id] = message.id
+                    logger.info(f"Created new channel manager message in {guild.name}")
+
             except discord.Forbidden:
                 logger.error(f"Missing permissions to manage messages in {guild.name}")
-                continue
-
-            # Create new manager message
-            try:
-                view = ChannelManagerView(topic_channels)
-                await setup_channel.send(
-                    "**Topic Channel Manager**\nSelect which channels you want to see:",
-                    view=view
-                )
-                logger.info(f"Successfully set up channel manager in {guild.name}")
-            except discord.Forbidden:
-                logger.error(f"Missing permissions to send messages in {guild.name}")
+            except Exception as e:
+                logger.error(f"Error updating channel manager in {guild.name}: {str(e)}")
 
     async def on_guild_channel_create(self, channel: discord.abc.GuildChannel):
         """Triggered when a channel is created."""
@@ -147,6 +162,10 @@ class TopicChannelBot(discord.Client):
             # If the channel was moved in or out of Topic Channels, or renamed within Topic Channels
             if before.name != after.name or before.category != after.category:
                 logger.info(f"Channel {before.name} updated in Topic Channels category")
+                await self.setup_channel_manager(after.guild)
+            # If the channel was moved inside the Topic Channels, update the Topic Channels message with the correct order
+            if before.position != after.position:
+                logger.info(f"Position of channel {before.name} in Topic Channels category was changed")
                 await self.setup_channel_manager(after.guild)
 
 def main():
