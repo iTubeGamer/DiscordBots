@@ -1,5 +1,5 @@
 import discord
-from discord import SelectOption, TextChannel, Interaction, app_commands
+from discord import SelectOption, TextChannel, Interaction, app_commands, CategoryChannel
 from discord.ui import Select, View
 import logging
 import os
@@ -30,7 +30,7 @@ class TopicChannelSelect(Select):
                 label=channel.name,
                 value=str(channel.id),
                 description=f"Show/hide {channel.name} channel"
-            ) for channel in channels
+            ) for channel in sorted(channels, key=lambda c: c.name.lower())  # Sort channels alphabetically
         ]
         
         super().__init__(
@@ -70,6 +70,7 @@ class TopicChannelBot(discord.Client):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
+        intents.guilds = True  # Need this for channel events
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
 
@@ -90,10 +91,11 @@ class TopicChannelBot(discord.Client):
             return category.text_channels
         return None
 
-    async def setup_channel_manager(self):
-        """Create or update the channel manager message in each guild."""
-        for guild in self.guilds:
-            # Find the setup channel
+    async def setup_channel_manager(self, guild: Optional[discord.Guild] = None):
+        """Create or update the channel manager message."""
+        guilds = [guild] if guild else self.guilds
+        
+        for guild in guilds:
             setup_channel = discord.utils.get(guild.text_channels, name="topic-channels")
             if not setup_channel:
                 logger.error(f"Could not find topic-channels channel in guild {guild.name}")
@@ -123,13 +125,29 @@ class TopicChannelBot(discord.Client):
             except discord.Forbidden:
                 logger.error(f"Missing permissions to send messages in {guild.name}")
 
-    @app_commands.command(name="refresh", description="Refresh the channel manager message")
-    @app_commands.default_permissions(administrator=True)
-    async def refresh(self, interaction: Interaction):
-        """Command to refresh the channel manager message."""
-        await interaction.response.defer(ephemeral=True)
-        await self.setup_channel_manager()
-        await interaction.followup.send("Channel manager has been refreshed!", ephemeral=True)
+    async def on_guild_channel_create(self, channel: discord.abc.GuildChannel):
+        """Triggered when a channel is created."""
+        if isinstance(channel, TextChannel) and channel.category and channel.category.name == "Topic Channels":
+            logger.info(f"Channel {channel.name} created in Topic Channels category")
+            await self.setup_channel_manager(channel.guild)
+
+    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
+        """Triggered when a channel is deleted."""
+        if isinstance(channel, TextChannel) and channel.category and channel.category.name == "Topic Channels":
+            logger.info(f"Channel {channel.name} deleted from Topic Channels category")
+            await self.setup_channel_manager(channel.guild)
+
+    async def on_guild_channel_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
+        """Triggered when a channel is updated (renamed, moved, etc)."""
+        # Check if either the old or new channel is in Topic Channels category
+        was_topic_channel = isinstance(before, TextChannel) and before.category and before.category.name == "Topic Channels"
+        is_topic_channel = isinstance(after, TextChannel) and after.category and after.category.name == "Topic Channels"
+        
+        if was_topic_channel or is_topic_channel:
+            # If the channel was moved in or out of Topic Channels, or renamed within Topic Channels
+            if before.name != after.name or before.category != after.category:
+                logger.info(f"Channel {before.name} updated in Topic Channels category")
+                await self.setup_channel_manager(after.guild)
 
 def main():
     # Load environment variables from .env file
