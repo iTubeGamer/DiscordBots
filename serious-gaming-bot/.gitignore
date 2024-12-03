@@ -4,3 +4,4 @@ launch.json
 tasks.json
 .env
 *.log
+message_ids.json
